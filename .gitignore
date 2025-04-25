@@ -2,6 +2,7 @@
 target/
 .metadata/
 .settings/
+.mvn/
 
 # RAR archives
 *.rar
