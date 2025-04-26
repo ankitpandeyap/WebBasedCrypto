@@ -2,7 +2,7 @@
 target/
 .metadata/
 .settings/
-.mvn/
+
 
 # RAR archives
 *.rar
@@ -13,6 +13,7 @@ target/
 *.jar
 *.war
 *.ear
+
 
 # IntelliJ IDEA
 .idea/
