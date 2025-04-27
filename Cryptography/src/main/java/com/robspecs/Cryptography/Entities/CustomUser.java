@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.User;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,10 +19,31 @@ public class CustomUser  {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long userId;
-    private String name;
+    
+	@Column(nullable = false)
+	private String name;
+    
+	@Column(nullable = false)
 	private String email;
+    
+	@Column(nullable = false,unique = true)
+	private String userName;
+	
+	@Column(nullable = false)
+	private String role;	
+	
+	@Column(nullable = false)
+	private String password;
+	
+    public String getUserName() {
+		return userName;
+	}
 
-    private String role;	
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	
 
 	public String getRole() {
 		return role;
@@ -31,7 +53,7 @@ public class CustomUser  {
 		this.role = role;
 	}
 
-  private String password;
+
 
 	public String getName() {
 		return name;
