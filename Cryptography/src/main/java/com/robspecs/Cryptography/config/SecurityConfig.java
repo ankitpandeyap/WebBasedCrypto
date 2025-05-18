@@ -1,6 +1,7 @@
 package com.robspecs.Cryptography.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,12 +24,14 @@ import com.robspecs.Cryptography.security.JWTValidationFilter;
 import com.robspecs.Cryptography.service.TokenBlacklistService;
 import com.robspecs.Cryptography.utils.JWTUtils;
 
+
 import jakarta.servlet.http.HttpServletResponse;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-		
+
    
 
 	private final JWTAuthenticationEntryPoint jwtAuthenticationEntryPoint;
@@ -59,6 +62,7 @@ public class SecurityConfig {
 		JWTRefreshFilter jwtRefreshFilter =  new JWTRefreshFilter(authenticationManager, jwtUtils, customUserDetailsService,tokenService);
 		
 		return http.csrf(AbstractHttpConfigurer::disable)
+				.cors(withDefaults())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint)
 						.accessDeniedHandler(accessDeniedHandler()))

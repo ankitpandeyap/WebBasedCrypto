@@ -27,10 +27,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 	}
 
 	@Override
-	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 	
-		User currentUser = userRepository.findByuserName(username)
-				.orElseThrow(() -> new UsernameNotFoundException("email not found in DB" + username));
+		User currentUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new UsernameNotFoundException("email not found in DB" + email));
 		Collection<? extends GrantedAuthority> authorities = Set
 				.of(new SimpleGrantedAuthority(currentUser.getRole().toString()));
 		return new org.springframework.security.core.userdetails.User(currentUser.getEmail(), currentUser.getPassword(),

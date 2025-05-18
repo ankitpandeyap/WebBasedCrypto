@@ -1,6 +1,7 @@
 package com.robspecs.Cryptography.security;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.security.sasl.AuthenticationException;
 
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.robspecs.Cryptography.exceptions.JWTBlackListedTokenException;
 import com.robspecs.Cryptography.service.TokenBlacklistService;
 import com.robspecs.Cryptography.utils.JWTUtils;
+
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,7 +40,9 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 		this.customUserDetailsService = customUserDetailsService;
 		this.tokenService = tokenService;
 	}
-
+  
+	private static final List<String> PUBLIC_URLS = List.of("/api/auth/login", "/api/auth/signup",
+			"/api/auth/register", "/api/auth/otp/verify", "/api/auth/otp/request");
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
@@ -46,6 +50,14 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 		boolean isRefreshRequest = request.getServletPath().equals("/api/auth/refresh");
 		boolean isAuthenticated = SecurityContextHolder.getContext().getAuthentication() != null;
 
+
+		String path = request.getRequestURI();
+
+		if (PUBLIC_URLS.contains(path)) {
+			filterChain.doFilter(request, response);
+			return;
+		}
+		
 		// If token is NOT expired AND user is authenticated OR it's NOT a refresh call
 		if (((isExpiredToken == null || !isExpiredToken) && isAuthenticated) || isRefreshRequest) {
 			filterChain.doFilter(request, response);
@@ -104,4 +116,3 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 	}
 
 }
-

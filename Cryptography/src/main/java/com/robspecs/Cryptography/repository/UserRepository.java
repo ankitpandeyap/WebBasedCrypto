@@ -10,6 +10,7 @@ import com.robspecs.Cryptography.Entities.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
  
-	  Optional<User>  findByuserName(String userName);
+	  Optional<User>  findByEmail(String email);
+	  Boolean  existsByEmail(String email);
 	 
 }

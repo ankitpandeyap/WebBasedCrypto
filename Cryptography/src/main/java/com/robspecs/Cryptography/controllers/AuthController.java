@@ -20,6 +20,7 @@ import com.robspecs.Cryptography.exceptions.TokenNotFoundException;
 import com.robspecs.Cryptography.service.AuthService;
 import com.robspecs.Cryptography.service.TokenBlacklistService;
 
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,18 +45,14 @@ public class AuthController {
 
 	@PostMapping({ "/register", "/signup" })
 	public ResponseEntity<?> signup(@RequestBody RegistrationDTO currDTO) {
+	    String otpVerified = redisTemplate.opsForValue().get(currDTO.getEmail());
 
-		if (Boolean.FALSE.equals(currDTO.isVerified())
-				|| this.redisTemplate.opsForValue().get(currDTO.getEmail()).equals("0")) {
-			return new ResponseEntity<>("EMAIL IS NOT VERIFIED", HttpStatus.BAD_REQUEST);
-		}
+	    if (!"1".equals(otpVerified)) {
+	        return new ResponseEntity<>("EMAIL IS NOT VERIFIED, REGISTER AGAIN", HttpStatus.BAD_REQUEST);
+	    }
 
-		User registeredUser = authService.registerNewUser(currDTO.getName(), currDTO.getEmail(),currDTO.getUserName(), currDTO.getPassword(),
-				Roles.USER); // Default
-		// role
-		// USER
-
-		return ResponseEntity.ok(" User registered successfully!" + registeredUser.getUserName());
+	    authService.registerNewUser(currDTO);
+	    return ResponseEntity.ok("User registered successfully!");
 	}
 
 	// APIS FOR VLAIDATIONG HTE TOKEN
@@ -64,6 +61,8 @@ public class AuthController {
 		return "Token is valid ✅";
 	}
 
+	
+	
 	@PostMapping("/logout")
 	public ResponseEntity<?> logoutUser(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws RuntimeException {
@@ -75,7 +74,7 @@ public class AuthController {
 				tokenService.blacklistToken(tokens[0], 300);
 				tokenService.blacklistToken(tokens[1], 30);
 				SecurityContextHolder.clearContext();
-
+				
 				Cookie expiredCookie = new Cookie("refreshToken", null);
 				expiredCookie.setMaxAge(0);
 				expiredCookie.setHttpOnly(true);
@@ -84,8 +83,7 @@ public class AuthController {
 			}
 			return ResponseEntity.ok("User logged out successfully.");
 		} catch (RuntimeException e) {
-			return ResponseEntity.internalServerError()
-					.body("LOGOUT UNSUCESSFUL, SOME ERROR OCCURS" + e.getLocalizedMessage());
+			return ResponseEntity.internalServerError().body("LOGOUT UNSUCESSFUL, SOME ERROR OCCURS" + e.getLocalizedMessage());
 
 		}
 	}
@@ -100,7 +98,7 @@ public class AuthController {
 		for (Cookie cookie : cookies) {
 			if ("refreshToken".equals(cookie.getName())) {
 				refreshToken = cookie.getValue();
-				break;
+				 break; 
 			}
 		}
 		if (refreshToken == null) {

@@ -6,7 +6,7 @@ public class RegistrationDTO {
 	  private String password;
 	  private String role;
 	  private String email;
-	  private Boolean isVerified;
+	
 	  private String userName;
 
 
@@ -16,12 +16,7 @@ public class RegistrationDTO {
 	public void setUserName(String userName) {
 		this.userName = userName;
 	}
-	public Boolean isVerified() {
-		return isVerified;
-	}
-	public void setVerified(Boolean isVerified) {
-		this.isVerified = isVerified;
-	}
+
 	public String getName() {
 		return name;
 	}

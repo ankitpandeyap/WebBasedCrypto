@@ -29,7 +29,8 @@ class CORSConfig implements WebMvcConfigurer {
 		.allowedHeaders(allowedHeaders)
         .allowedMethods(allowedMethods)
         .allowedOrigins(allowedOrigins)
-        .maxAge(3600);
+        .maxAge(3600)
+        .exposedHeaders("Authorization");;
        
 	}
 	
