@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(currDTO.getPassword())); // Always encode passwords!
         user.setRole(role);
         user.setUserName(currDTO.getUserName());
-        String hashedPasskey = passwordEncoder.encode(currDTO.getPasskey());
+        String hashedPasskey = passwordEncoder.encode(currDTO.getPasskey().toString());
         user.setPasskeyHash(hashedPasskey);
         user.setEnabled(true); // User is immediately enabled upon registration
 
