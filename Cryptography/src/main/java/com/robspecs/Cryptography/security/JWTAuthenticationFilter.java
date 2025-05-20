@@ -48,11 +48,13 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 					loginRequest.getUsername(), loginRequest.getPassword());
 
 			Authentication authResult = authenticationManager.authenticate(authToken);
-             
+
 			UserDetails userDetails = (UserDetails) authResult.getPrincipal();
-			if(userDetails.isEnabled() == false) throw new Exception("Profile not verified Re-Verfiy Profile");
-			 
-			
+			if(!userDetails.isEnabled()) {
+				throw new Exception("Profile not verified Re-Verfiy Profile");
+			}
+
+
 			if (authResult.isAuthenticated()) {
 
 				String token = jwtUtil.generateToken(authResult.getName(), 15); // 15min
@@ -67,8 +69,8 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 				response.addCookie(refreshCookie);
 				response.setContentType("application/json");
 				response.getWriter().write("{\"message\":\"Login successful\"}");
-			
-				
+
+
 			}
 
 		} catch (Exception e) {

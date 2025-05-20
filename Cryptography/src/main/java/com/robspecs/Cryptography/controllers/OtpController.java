@@ -42,7 +42,11 @@ public class OtpController {
             if (isValid) {
                 return ResponseEntity.ok("OTP verified");
             } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid OTP");
+                // This 'else' block for 'isValid == false' would only be reached if
+                // validateOtp returned false without throwing an exception.
+                // Given the current OtpServiceImpl, all validation failures throw an exception,
+                // so this path is technically unreachable.
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid OTP (should not be reached)");
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("OTP verification failed: " + e.getMessage());

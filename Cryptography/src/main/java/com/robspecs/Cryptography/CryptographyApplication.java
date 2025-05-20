@@ -11,7 +11,7 @@ public class CryptographyApplication extends SpringBootServletInitializer{
 	public static void main(String[] args) {
 		SpringApplication.run(CryptographyApplication.class, args);
 	}
-	
+
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
 		return application.sources(CryptographyApplication.class);

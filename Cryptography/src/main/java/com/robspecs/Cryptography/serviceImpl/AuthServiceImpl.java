@@ -5,12 +5,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.robspecs.Cryptography.Entities.User;
-import com.robspecs.Cryptography.Enums.Roles;
+import com.robspecs.Cryptography.Entities.User; // Assuming this is your User entity
+import com.robspecs.Cryptography.Enums.Roles; // Assuming this is your Roles enum
 import com.robspecs.Cryptography.dto.RegistrationDTO;
 import com.robspecs.Cryptography.repository.UserRepository;
 import com.robspecs.Cryptography.service.AuthService;
-
 
 
 @Service
@@ -18,7 +17,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate; // Needed for cleaning up OTP/verification keys
 
     @Autowired
     public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, StringRedisTemplate redisTemplate) {
@@ -29,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public User registerNewUser(RegistrationDTO currDTO) {
-        String email= currDTO.getEmail();
+        String email = currDTO.getEmail();
 
         // If email already exists and is enabled, reject registration
         if (userRepository.existsByEmail(email)) {
@@ -39,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Check for role (default = CONSUMER if not ADMIN)
+        // Check for role (default to USER if not ADMIN)
         Roles role = currDTO.getRole().equalsIgnoreCase("ADMIN") ? Roles.ADMIN : Roles.USER;
 
         // Create and save user
@@ -49,10 +48,17 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(currDTO.getPassword())); // Always encode passwords!
         user.setRole(role);
         user.setUserName(currDTO.getUserName());
-        user.setEnabled(true);
+        String hashedPasskey = passwordEncoder.encode(currDTO.getPasskey());
+        user.setPasskeyHash(hashedPasskey);
+        user.setEnabled(true); // User is immediately enabled upon registration
 
-        // Delete OTP from Redis after successful registration
+
+        // Delete original OTP key from Redis (belt-and-suspenders, as OtpServiceImpl also deletes it)
         redisTemplate.delete(currDTO.getEmail());
+
+        // IMPORTANT: Also delete the verification flag after successful registration
+        String verifiedFlagKey = currDTO.getEmail() + ":verified";
+        redisTemplate.delete(verifiedFlagKey);
 
         return userRepository.save(user);
     }

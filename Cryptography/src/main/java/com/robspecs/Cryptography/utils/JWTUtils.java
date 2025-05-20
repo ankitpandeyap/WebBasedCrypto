@@ -18,7 +18,7 @@ public class JWTUtils {
     private final static Logger logger = LoggerFactory.getLogger(JWTUtils.class);
 	private final String SECRET_KEY = "=84167ddacceacc4a4a887f12ae83be81295dad84fa9bb6ee294eee82bfc2";
 	private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
-	
+
 	// Generate JWT Token
     public String generateToken(String username, long expiryMinutes) {
     	logger.info("Creating JWT token for username :" + username);
@@ -29,7 +29,7 @@ public class JWTUtils {
                 .signWith(key,SignatureAlgorithm.HS256)
                 .compact();
     }
-     
+
     public String validateAndExtractUsername(String token) {
         try {
         	logger.info("Token {}  extracting username ", token );
@@ -46,7 +46,7 @@ public class JWTUtils {
 		return null;
     }
 
-	
-	
+
+
 
 }

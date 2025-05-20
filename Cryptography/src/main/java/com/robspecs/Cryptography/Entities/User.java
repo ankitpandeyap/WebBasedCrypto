@@ -1,8 +1,5 @@
 package com.robspecs.Cryptography.Entities;
 
-import java.util.Collection;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.robspecs.Cryptography.Enums.Roles;
 
 import jakarta.persistence.Column;
@@ -37,6 +34,9 @@ public class User {
 	private String password;
 
 	private boolean enabled = false; // After OTP verification
+
+	@Column
+	private String passkeyHash;
 
 	public boolean isEnabled() {
 		return enabled;
@@ -89,5 +89,15 @@ public class User {
 	public String getPassword() {
 		return password;
 	}
+
+	public String getPasskeyHash() {
+		return passkeyHash;
+	}
+
+	public void setPasskeyHash(String passkeyHash) {
+		this.passkeyHash = passkeyHash;
+	}
+
+
 
 }

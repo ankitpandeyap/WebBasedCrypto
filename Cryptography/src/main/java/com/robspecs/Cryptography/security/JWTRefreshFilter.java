@@ -17,7 +17,6 @@ import com.robspecs.Cryptography.exceptions.JWTBlackListedTokenException;
 import com.robspecs.Cryptography.service.TokenBlacklistService;
 import com.robspecs.Cryptography.utils.JWTUtils;
 
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -40,7 +39,7 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 		this.customUserDetailsService = customUserDetailsService;
 		this.tokenService = tokenService;
 	}
-  
+
 	private static final List<String> PUBLIC_URLS = List.of("/api/auth/login", "/api/auth/signup",
 			"/api/auth/register", "/api/auth/otp/verify", "/api/auth/otp/request");
 	@Override
@@ -57,7 +56,7 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 			filterChain.doFilter(request, response);
 			return;
 		}
-		
+
 		// If token is NOT expired AND user is authenticated OR it's NOT a refresh call
 		if (((isExpiredToken == null || !isExpiredToken) && isAuthenticated) || isRefreshRequest) {
 			filterChain.doFilter(request, response);

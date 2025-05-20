@@ -7,17 +7,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 class CORSConfig implements WebMvcConfigurer {
-	
- 
+
+
 	@Value("${cors.allowed.origins}")
 	private String [] allowedOrigins;
-	
+
 	@Value("${cors.allowed.methods}")
 	private String[] allowedMethods;
-	
+
 	@Value("${cors.allowed.headers}")
 	private String allowedHeaders;
-	
+
 	@Value("${cors.allowed.credentials}")
 	private boolean allowedCredentials;
 
@@ -30,12 +30,12 @@ class CORSConfig implements WebMvcConfigurer {
         .allowedMethods(allowedMethods)
         .allowedOrigins(allowedOrigins)
         .maxAge(3600)
-        .exposedHeaders("Authorization");;
-       
+        .exposedHeaders("Authorization");
+
 	}
-	
-	 
-    	
-	
-	
+
+
+
+
+
 }

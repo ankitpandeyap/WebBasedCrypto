@@ -17,10 +17,12 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
 		this.redisTemplate = redisTemplate;
 	}
 
+	@Override
 	public void blacklistToken(String token, long expirationInMinutes) {
 		redisTemplate.opsForValue().set(token, "BLACKLISTED", expirationInMinutes, TimeUnit.MINUTES);
 	}
 
+	@Override
 	public Boolean isBlacklisted(String token) {
 		String value = redisTemplate.opsForValue().get(token);
 	    return "BLACKLISTED".equals(value);

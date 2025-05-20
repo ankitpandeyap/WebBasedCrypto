@@ -6,7 +6,7 @@ public class RegistrationDTO {
 	  private String password;
 	  private String role;
 	  private String email;
-	
+	  private String passkey;
 	  private String userName;
 
 
@@ -40,6 +40,12 @@ public class RegistrationDTO {
 	}
 	public void setEmail(String email) {
 		this.email = email;
+	}
+	public String getPasskey() {
+		return passkey;
+	}
+	public void setPasskey(String passkey) {
+		this.passkey = passkey;
 	}
 
 

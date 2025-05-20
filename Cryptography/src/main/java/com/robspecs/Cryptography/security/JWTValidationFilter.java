@@ -18,7 +18,6 @@ import com.robspecs.Cryptography.exceptions.TokenNotFoundException;
 import com.robspecs.Cryptography.service.TokenBlacklistService;
 import com.robspecs.Cryptography.utils.JWTUtils;
 
-
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.InvalidClaimException;
 import io.jsonwebtoken.JwtException;
