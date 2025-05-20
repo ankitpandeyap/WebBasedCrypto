@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.security.sasl.AuthenticationException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,6 +33,7 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 	private final JWTUtils jwtUtil;
 	private final CustomUserDetailsService customUserDetailsService;
 	private final TokenBlacklistService tokenService;
+    private final static Logger logger = LoggerFactory.getLogger(JWTRefreshFilter.class);
 
 	public JWTRefreshFilter(AuthenticationManager authenticationManager, JWTUtils jwtUtil,
 			CustomUserDetailsService customUserDetailsService, TokenBlacklistService tokenService) {
@@ -65,18 +68,24 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 
 		try {
 			String usernameFromAccessToken = (String) request.getAttribute("expiredTokenUsername");
+            logger.debug("Access token expired for user: {}", usernameFromAccessToken);
 
 			String refreshToken = extractJwtFromRequest(request);
 			if (refreshToken == null) {
+                logger.warn("Refresh token is null or not present.");
 				throw new AuthenticationException("Refresh Token is Invalid or not present");
 			}
+            logger.debug("Refresh token extracted: {}", refreshToken);
 
 			if (tokenService.isBlacklisted(refreshToken)) {
+                logger.warn("Refresh token is blacklisted: {}", refreshToken);
 				// scope for improvement
 				throw new JWTBlackListedTokenException("Acess token is Blacklisted");
 			}
 			String usernameFromRefreshToken = jwtUtil.validateAndExtractUsername(refreshToken);
+            logger.debug("Username from refresh token: {}", usernameFromRefreshToken);
 			if (!usernameFromAccessToken.equals(usernameFromRefreshToken)) {
+                logger.warn("Username from access token does not match username from refresh token.");
 				throw new AuthenticationException("Refresh Token is Invalid or not present");
 			}
 
@@ -85,14 +94,18 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 					userDetails.getAuthorities());
 
 			String newAccessToken = jwtUtil.generateToken(userDetails.getUsername(), 15);
+            logger.debug("New Access Token generated: {}", newAccessToken);
 
 			response.setHeader("Authorization", "Bearer " + newAccessToken);
+            logger.info("New Access Token set in header.");
 
 			SecurityContextHolder.getContext().setAuthentication(authToken);
+            logger.info("Security Context updated with new authentication.");
 
 			filterChain.doFilter(request, response);
 
 		} catch (Exception e) {
+            logger.error("Refresh token processing failed: {}", e.getMessage());
 			request.setAttribute("custom-error", "Refresh Token Invalid or Expired: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTRefreshTokenException");
 			throw new BadCredentialsException("Refresh token failure");
@@ -102,12 +115,14 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 	private String extractJwtFromRequest(HttpServletRequest request) {
 		Cookie[] cookies = request.getCookies();
 		if (cookies == null) {
+            logger.debug("No cookies found in the request.");
 			return null;
 		}
 		String refreshToken = null;
 		for (Cookie cookie : cookies) {
 			if ("refreshToken".equals(cookie.getName())) {
 				refreshToken = cookie.getValue();
+                logger.debug("Refresh token found in cookie: {}", refreshToken);
 				break;
 			}
 		}

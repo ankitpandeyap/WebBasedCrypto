@@ -3,6 +3,8 @@ package com.robspecs.Cryptography.security;
 import java.io.IOException;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,6 +36,7 @@ public class JWTValidationFilter extends OncePerRequestFilter {
 	private final JWTUtils jwtUtil;
 	private final CustomUserDetailsService customUserDetailsService;
 	private final TokenBlacklistService tokenService;
+    private final static Logger logger = LoggerFactory.getLogger(JWTValidationFilter.class);
 
 	public JWTValidationFilter(AuthenticationManager authenticationManager, JWTUtils jwtUtil,
 			CustomUserDetailsService customUserDetailsService, TokenBlacklistService tokenService) {
@@ -59,48 +62,59 @@ public class JWTValidationFilter extends OncePerRequestFilter {
 
 		try {
 			String token = extractTokenFromRequest(request);
+            logger.debug("Extracted token: {}", token);
 			if (tokenService.isBlacklisted(token)) {
+                logger.warn("Token is blacklisted: {}", token);
 				// scope for improvement
 				throw new JWTBlackListedTokenException("Acess token is Blacklisted");
 			}
 			String usernameFromToken = jwtUtil.validateAndExtractUsername(token);
+            logger.debug("Username from token: {}", usernameFromToken);
 			UserDetails currentUser = customUserDetailsService.loadUserByUsername(usernameFromToken);
 			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(currentUser, null,
 					currentUser.getAuthorities());
 			authToken.setDetails(currentUser);
 			authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 			SecurityContextHolder.getContext().setAuthentication(authToken);
+            logger.info("User: {} authenticated via JWT.", usernameFromToken);
 
 		} catch (TokenNotFoundException e) {
+            logger.error("Token not found: {}", e.getMessage());
 			request.setAttribute("custom-error", "Token not found: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTTokenNotFoundException");
 			throw new BadCredentialsException("Token not found");
 
 		} catch (MissingClaimException e) {
+            logger.error("Missing claim in token: {}", e.getMessage());
 			request.setAttribute("custom-error", "Missing claim in token: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTTokenMissingClaimException");
 			throw new BadCredentialsException("Missing claim in token");
 
 		} catch (InvalidClaimException e) {
+            logger.error("Invalid claim in token: {}", e.getMessage());
 			request.setAttribute("custom-error", "Invalid claim in token: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTTokenInvalidClaimException");
 			throw new BadCredentialsException("Invalid claim");
 
 		} catch (UsernameNotFoundException e) {
+            logger.error("Username not found: {}", e.getMessage());
 			request.setAttribute("custom-error", "Username not found: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTTokenUsernameNotFoundException");
 			throw new BadCredentialsException("Username not found");
 
 		} catch (ExpiredJwtException e) {
+            logger.warn("Token expired for user: {}", e.getClaims().getSubject());
 			request.setAttribute("expiredToken", true);
 			request.setAttribute("expiredTokenUsername", e.getClaims().getSubject());
 
 		} catch (JwtException e) {
+            logger.error("JWT parsing error: {}", e.getMessage());
 			request.setAttribute("custom-error", "JWT parsing error: " + e.getMessage());
 			request.setAttribute("custom-exception", "JWTGeneralParsingException");
 			throw new BadCredentialsException("Invalid JWT token");
 
 		} catch (Exception e) {
+            logger.error("Unhandled authentication error: {}", e.getMessage());
 			request.setAttribute("custom-error", "Unhandled authentication error: " + e.getMessage());
 			request.setAttribute("custom-exception", "UnexpectedAuthenticationException");
 			throw new BadCredentialsException("Unexpected error");
@@ -111,8 +125,11 @@ public class JWTValidationFilter extends OncePerRequestFilter {
 	private String extractTokenFromRequest(HttpServletRequest request) throws TokenNotFoundException {
 		String bearerToken = request.getHeader("Authorization");
 		if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-			return bearerToken.substring(7);
+            String token = bearerToken.substring(7);
+            logger.debug("Token extracted from Authorization header: {}", token);
+			return token;
 		}
+        logger.warn("Authorization header does not contain a Bearer token.");
 		throw new TokenNotFoundException(request.getLocalName() + " request doesn't contain token");
 	}
 

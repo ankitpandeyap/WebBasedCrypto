@@ -2,6 +2,8 @@ package com.robspecs.Cryptography.security;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +27,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
 	private final AuthenticationManager authenticationManager;
 	private final JWTUtils jwtUtil;
+    private final static Logger logger = LoggerFactory.getLogger(JWTAuthenticationFilter.class);
 
 	public JWTAuthenticationFilter(AuthenticationManager authenticationManager, JWTUtils jwtUtil) {
 		this.authenticationManager = authenticationManager;
@@ -43,9 +46,10 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			LoginDTO loginRequest = objectMapper.readValue(request.getInputStream(), LoginDTO.class);
+            logger.debug("Login request received for user: {}", loginRequest.getUsernameOrEmail());
 
 			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-					loginRequest.getUsername(), loginRequest.getPassword());
+					loginRequest.getUsernameOrEmail(), loginRequest.getPassword());
 
 			Authentication authResult = authenticationManager.authenticate(authToken);
 
@@ -56,9 +60,10 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
 
 			if (authResult.isAuthenticated()) {
-
+                logger.info("User: {} authenticated successfully.", userDetails.getUsername());
 				String token = jwtUtil.generateToken(authResult.getName(), 15); // 15min
 				response.setHeader("Authorization", "Bearer " + token);
+                logger.debug("Access Token generated: {}", token);
 
 				String refreshToken = jwtUtil.generateToken(authResult.getName(), 7 * 24 * 60);
 				Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
@@ -67,13 +72,16 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 				refreshCookie.setPath("/api/auth/refresh"); // Required for cookie to be sent to all endpoints
 				refreshCookie.setMaxAge(7 * 24 * 60 * 60);
 				response.addCookie(refreshCookie);
+                logger.debug("Refresh Token generated and set as cookie.");
 				response.setContentType("application/json");
 				response.getWriter().write("{\"message\":\"Login successful\"}");
+                logger.info("Login successful response sent.");
 
 
 			}
 
 		} catch (Exception e) {
+            logger.error("Authentication failed: {}", e.getMessage());
 			request.setAttribute("custom-error", e.getMessage());
 			request.setAttribute("custom-exception", e.getClass().getName());
 			throw new BadCredentialsException("INTERNAL ERROR");

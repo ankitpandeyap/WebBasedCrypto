@@ -24,8 +24,8 @@ public class JWTAuthenticationEntryPoint implements AuthenticationEntryPoint {
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException authException) throws IOException, ServletException {
-		logger.error("ENTER THE AUTHENTICATION POINT BAD REQUEST",
-				request.getLocalAddr() + " " + request.getPathInfo());
+		logger.error("Authentication failed: {}", authException.getMessage());
+		logger.debug("Request details: Local Address={}, Path Info={}", request.getRemoteAddr(), request.getPathInfo());
 
 		String message = authException.getMessage();
 		String customExceptionType = "AuthenticationException";
@@ -33,11 +33,13 @@ public class JWTAuthenticationEntryPoint implements AuthenticationEntryPoint {
 		Object customError = request.getAttribute("custom-error");
 		if (customError != null) {
 			message = customError.toString();
+            logger.debug("Custom error attribute found: {}", message);
 		}
 
 		Object exceptionType = request.getAttribute("custom-exception");
 		if (exceptionType != null) {
 			customExceptionType = exceptionType.toString();
+            logger.debug("Custom exception type attribute found: {}", customExceptionType);
 		}
 
 		Map<String, Object> errorDetails = new HashMap<>();
@@ -48,6 +50,8 @@ public class JWTAuthenticationEntryPoint implements AuthenticationEntryPoint {
 		errorDetails.put("path", request.getRequestURL().toString());
 		errorDetails.put("exceptionType", customExceptionType);
 		errorDetails.put("client", request.getRemoteAddr());
+        logger.debug("Error details: {}", errorDetails);
+
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		response.setContentType("application/json");
 
@@ -56,3 +60,4 @@ public class JWTAuthenticationEntryPoint implements AuthenticationEntryPoint {
 	}
 
 }
+

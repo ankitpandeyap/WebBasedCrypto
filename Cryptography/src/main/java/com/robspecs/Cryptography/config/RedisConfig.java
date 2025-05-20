@@ -7,12 +7,19 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Configuration
 public class RedisConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(RedisConfig.class);
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(); // default localhost:6379// will use password
+        LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory();
+        logger.debug("RedisConnectionFactory bean created using Lettuce: {}", lettuceConnectionFactory);
+        return lettuceConnectionFactory; // default localhost:6379// will use password
     }
 
     @Bean
@@ -21,6 +28,7 @@ public class RedisConfig {
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new StringRedisSerializer());
+        logger.debug("RedisTemplate bean created");
         return template;
     }
 }
