@@ -36,7 +36,8 @@ form label {
 
 form input[type="text"],
 form input[type="email"],
-form input[type="password"] {
+form input[type="password"],
+form input[type="number"] { /* Added form input[type="number"] */
   width: 100%;
   padding: 12px 16px;
   margin-bottom: 20px;
@@ -109,20 +110,18 @@ button[type="submit"]:hover {
 
 /* Base styles for the select element (moved outside media query) */
 .register-dropdown {
-  display: block; /* Make it take full width */
+  display: block;
   width: 100%;
   padding: 12px 16px;
   margin-bottom: 20px;
-  border: 1px solid #dddddd; /* Light gray border, common in Airbnb */
-  border-radius: 12px; /* Slightly rounded corners */
+  border: 1px solid #dddddd;
+  border-radius: 12px;
   font-size: 16px;
   line-height: 1.5;
-  color: #222222; /* Dark gray text, typical for readability */
+  color: #222222;
   background-color: #ffffff;
   cursor: pointer;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-
-  /* Remove default arrow styling for better customization */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -133,9 +132,9 @@ button[type="submit"]:hover {
 }
 
 .register-dropdown:focus {
-  outline: none; /* Remove default focus outline */
-  border-color: #007bff; /* Airbnb blue for focus state */
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Subtle focus shadow */
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 .register-dropdown option {
@@ -159,7 +158,6 @@ button[type="submit"]:hover {
     padding-bottom: 100px;
     /* Add space for the fixed footer */
   }
-
   /* You can add specific smaller screen adjustments for the dropdown here if needed */
   /* For example, you might want to adjust padding or font size */
   /* .register-dropdown { ... } */

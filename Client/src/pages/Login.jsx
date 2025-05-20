@@ -1,33 +1,28 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { Navigate } from 'react-router-dom';
-import axiosInstance from '../api/axiosInstance';
-import { toast } from 'react-toastify';
-import LoadingSpinner from '../components/LoadingSpinner';
-import '../css/Login.css';
-import Header from '../components/Header';
-
-
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
+import axiosInstance from "../api/axiosInstance";
+import { toast } from "react-toastify";
+import LoadingSpinner from "../components/LoadingSpinner";
+import "../css/Login.css";
+import Header from "../components/Header";
 
 export default function Login() {
   // Step 1: Form fields
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-
-
-
 
   // Step 3: Submit handler
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axiosInstance.post('/auth/login', {
-        username,
+      const response = await axiosInstance.post("/auth/login", {
+        usernameOrEmail,
         password,
       });
       /*
@@ -46,20 +41,20 @@ export default function Login() {
           });
       */
       // Axios normalizes all header keys to lowercase
-      const token = response.headers.get('authorization') || response.headers['authorization'];
-
-
+      const token =
+        response.headers.get("authorization") ||
+        response.headers["authorization"];
 
       if (token) {
         login(token); // store in localStorage + update auth state
-        toast.success('Login successful!');
-        navigate('/dashboard'); // ✅ Now this should work
+        toast.success("Login successful!");
+        navigate("/dashboard"); // ✅ Now this should work
       } else {
-        toast.error('Login failed: No token received');
+        toast.error("Login failed: No token received");
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || 'Invalid username or password'
+        error.response?.data?.message || "Invalid username or password"
       );
     } finally {
       setLoading(false);
@@ -74,13 +69,11 @@ export default function Login() {
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           <h2 className="text-2xl mb-4 font-bold text-center">Login</h2>
 
-
-
           <input
             type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
+            value={usernameOrEmail}
+            onChange={(e) =>setUsernameOrEmail(e.target.value)}
+            placeholder="Username Or Email"
             required
             className="w-full border p-2 mb-4 rounded"
           />
@@ -92,7 +85,13 @@ export default function Login() {
             required
             className="w-full border p-2 mb-4 rounded"
           />
-          {loading ? <LoadingSpinner /> : <button type="submit" className="btn">Login</button>}
+          {loading ? (
+            <LoadingSpinner />
+          ) : (
+            <button type="submit" className="btn">
+              Login
+            </button>
+          )}
         </form>
       </div>
     </>
