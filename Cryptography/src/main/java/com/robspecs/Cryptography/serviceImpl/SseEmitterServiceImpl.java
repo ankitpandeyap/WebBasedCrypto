@@ -7,11 +7,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.robspecs.Cryptography.controllers.MessageController;
 import com.robspecs.Cryptography.service.SseEmitterService;
 
+@Service
 public class SseEmitterServiceImpl implements SseEmitterService {
 	private static final Logger log = LoggerFactory.getLogger(SseEmitterServiceImpl.class);
 	 private final ConcurrentHashMap<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
