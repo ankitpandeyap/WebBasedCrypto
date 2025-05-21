@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.robspecs.Cryptography.Entities.Message;
+import com.robspecs.Cryptography.Entities.User;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByReceiver_UserNameOrderByTimestampDesc(String receiverUsername);
+    List<Message> findByReceiverOrderByTimestampDesc(User receiver);
 }
