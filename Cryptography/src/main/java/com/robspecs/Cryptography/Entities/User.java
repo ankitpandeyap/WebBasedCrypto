@@ -1,7 +1,6 @@
 package com.robspecs.Cryptography.Entities;
 
 import com.robspecs.Cryptography.Enums.Roles;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,97 +9,136 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-	@Entity
-	@Table(name = "users", indexes = {
-		    @Index(name = "email_idx", columnList = "email", unique = true),
-		    @Index(name = "username_idx", columnList = "userName", unique = true) // Added index for userName
-		})               
-	public class User {
-	
-		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		private Long userId;
-	
-		@Column(nullable = false)
-		private String name;
-	
-		@Column(nullable = false)
-		private String email;
-	
-		@Column(nullable = false, unique = true)
-		private String userName;
-	
-		@Column(nullable = false)
-		private Roles role;
-	
-		@Column(nullable = false)
-		private String password;
-	
-		private boolean enabled = false; // After OTP verification
-	
-		@Column
-		private String passkeyHash;
-	
-		public boolean isEnabled() {
-			return enabled;
-		}
-	
-		public void setEnabled(boolean enabled) {
-			this.enabled = enabled;
-		}
-	
-		public String getUserName() {
-			return userName;
-		}
-	
-		public void setUserName(String userName) {
-			this.userName = userName;
-		}
-	
-		public Roles getRole() {
-			return role;
-		}
-	
-		public void setRole(Roles role) {
-			this.role = role;
-		}
-	
-		public String getName() {
-			return name;
-		}
-	
-		public void setName(String name) {
-			this.name = name;
-		}
-	
-		public String getEmail() {
-			return email;
-		}
-	
-		public void setEmail(String email) {
-			this.email = email;
-		}
-	
-		public void setPassword(String password) {
-			this.password = password;
-		}
-	
-		public Long getUserId() {
-			return userId;
-		}
-	
-		public String getPassword() {
-			return password;
-		}
-	
-		public String getPasskeyHash() {
-			return passkeyHash;
-		}
-	
-		public void setPasskeyHash(String passkeyHash) {
-			this.passkeyHash = passkeyHash;
-		}
-	
-	
-	
+import org.springframework.security.core.GrantedAuthority; // New import
+import org.springframework.security.core.authority.SimpleGrantedAuthority; // New import
+import org.springframework.security.core.userdetails.UserDetails; // New import
+
+import java.util.Collection; // New import
+import java.util.Collections; // New import (for authorities)
+import java.util.Set; // Could also use Set for multiple roles
+
+@Entity
+@Table(name = "users", indexes = { @Index(name = "email_idx", columnList = "email", unique = true),
+		@Index(name = "username_idx", columnList = "userName", unique = true) })
+public class User implements UserDetails { // <-- Implement UserDetails here!
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long userId;
+
+	@Column(nullable = false)
+	private String name;
+
+	@Column(nullable = false)
+	private String email;
+
+	@Column(nullable = false, unique = true)
+	private String userName;
+
+	@Column(nullable = false)
+	private Roles role;
+
+	@Column(nullable = false)
+	private String password;
+
+	private boolean enabled = false;
+
+	@Column
+	private String passkeyHash;
+
+	// --- UserDetails Interface Implementations ---
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		// Map your Roles enum to Spring Security's GrantedAuthority
+		return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.role.name()));
 	}
+
+	@Override
+	public String getPassword() {
+		return this.password; // Your entity already has this
+	}
+
+	@Override
+	public String getUsername() {
+		// Spring Security expects getUsername(), use your userName field
+		return this.userName; // Or this.email if that's your primary login identifier
+	}
+
+	@Override
+	public boolean isAccountNonExpired() {
+		return true; // Or implement logic for account expiry
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return true; // Or implement logic for account locking
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true; // Or implement logic for password expiry
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return this.enabled; // Your entity already has this
+	}
+
+	// --- Existing Getters and Setters (unmodified) ---
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public String getUserName() { // Keep this for your domain logic, though getUsername() handles security
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public Roles getRole() {
+		return role;
+	}
+
+	public void setRole(Roles role) {
+		this.role = role;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public Long getUserId() {
+		return userId;
+	}
+
+	// public String getPassword() { // This would be redundant if you implement the
+	// UserDetails method directly
+	// return password;
+	// }
+	public String getPasskeyHash() {
+		return passkeyHash;
+	}
+
+	public void setPasskeyHash(String passkeyHash) {
+		this.passkeyHash = passkeyHash;
+	}
+}
