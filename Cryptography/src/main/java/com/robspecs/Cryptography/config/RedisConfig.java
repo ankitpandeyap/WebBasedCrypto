@@ -11,12 +11,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.robspecs.Cryptography.serviceImpl.RedisSubscriberImpl;
-
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
 
 @Configuration
@@ -33,32 +34,32 @@ public class RedisConfig {
 
 	/*
 	 * // Inject properties from application.properties/yml
-	 * 
+	 *
 	 * @Value("${spring.data.redis.host:localhost}") // Default to localhost if not
 	 * specified private String redisHost;
-	 * 
+	 *
 	 * @Value("${spring.data.redis.port:6379}") // Default to 6379 if not specified
 	 * private int redisPort;
-	 * 
+	 *
 	 * @Value("${spring.data.redis.password:}") // Default to empty string (no
 	 * password) if not specified private String redisPassword;
-	 * 
+	 *
 	 * @Bean public RedisConnectionFactory redisConnectionFactory() { logger.
 	 * info("Configuring RedisConnectionFactory with host: {}, port: {}, password provided: {}"
 	 * , redisHost, redisPort, !redisPassword.isEmpty()); // Log configuration
 	 * details
-	 * 
+	 *
 	 * // Use RedisStandaloneConfiguration to set host, port, and password
 	 * RedisStandaloneConfiguration redisStandaloneConfiguration = new
 	 * RedisStandaloneConfiguration();
 	 * redisStandaloneConfiguration.setHostName(redisHost);
 	 * redisStandaloneConfiguration.setPort(redisPort);
-	 * 
+	 *
 	 * if (!redisPassword.isEmpty()) {
 	 * redisStandaloneConfiguration.setPassword(redisPassword);
 	 * logger.debug("Redis password set for connection factory."); } else {
 	 * logger.debug("No Redis password configured."); }
-	 * 
+	 *
 	 * LettuceConnectionFactory lettuceConnectionFactory = new
 	 * LettuceConnectionFactory(redisStandaloneConfiguration); // It's good practice
 	 * to call afterPropertiesSet() if not managed by Spring's full lifecycle //
@@ -66,7 +67,7 @@ public class RedisConfig {
 	 * Spring manages the bean lifecycle
 	 * logger.debug("LettuceConnectionFactory bean created for Redis at {}:{}",
 	 * redisHost, redisPort); return lettuceConnectionFactory; }*
-	 * 
+	 *
 	 */
 
 	@Bean
@@ -135,10 +136,14 @@ public class RedisConfig {
 		template.setKeySerializer(new StringRedisSerializer()); // Keys are still strings
 		template.setHashKeySerializer(new StringRedisSerializer()); // If you use hash operations
 
+		ObjectMapper objectMapper = new ObjectMapper();
+		objectMapper.registerModule(new JavaTimeModule()); // Register the JavaTimeModule
+
+		GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 		// Use GenericJackson2JsonRedisSerializer for serializing/deserializing Objects
 		// to/from JSON
-		template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-		template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer()); // If you use hash operations
+		template.setValueSerializer(jsonSerializer); // Use the configured JSON serializer
+		template.setHashValueSerializer(jsonSerializer); // If you use hash operations
 
 		template.afterPropertiesSet(); // Ensure serializers are set up before use
 		logger.debug("RedisTemplate<String, Object> 'redisJsonTemplate' bean created with JSON serializer.");

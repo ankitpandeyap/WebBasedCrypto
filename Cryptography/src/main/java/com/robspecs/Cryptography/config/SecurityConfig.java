@@ -2,6 +2,8 @@ package com.robspecs.Cryptography.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,8 +27,6 @@ import com.robspecs.Cryptography.service.TokenBlacklistService;
 import com.robspecs.Cryptography.utils.JWTUtils;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 @Configuration

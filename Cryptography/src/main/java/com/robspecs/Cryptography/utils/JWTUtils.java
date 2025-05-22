@@ -23,7 +23,7 @@ public class JWTUtils {
     private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
     public JWTUtils() {
-        logger.debug("JWTUtils initialized with secret key: {}", SECRET_KEY); //  Log the secret key (VERY IMPORTANT:  Consider masking this in production!)
+        logger.debug("JWTUtils initialized with secret key"); //  Log the secret key (VERY IMPORTANT:  Consider masking this in production!)
     }
 
     // Generate JWT Token
@@ -57,19 +57,19 @@ public class JWTUtils {
             return username;
         } catch (MalformedJwtException m) {
             logger.error("MalformedJwtException: Invalid JWT token format. Token: {}  Error: {}", token, m.getMessage());
-            return null;
+           throw m;
         } catch (ExpiredJwtException e) {
             logger.error("ExpiredJwtException: JWT token has expired. Token: {}  Error: {}", token, e.getMessage());
-            return null;
+            throw e;
         } catch (SignatureException s) {
             logger.error("SignatureException: JWT token signature is invalid. Token: {} Error: {}", token, s.getMessage());
-            return null;
+            throw s;
         } catch (IllegalArgumentException i) {
             logger.error("IllegalArgumentException: JWT token is invalid. Token: {} Error: {}", token, i.getMessage());
-            return null;
+            throw i;
         } catch (Exception e) {
             logger.error("Exception:  Error validating/extracting from token {}. Error: {}", token, e.getMessage());
-            return null;
+            throw e;
         }
     }
 }

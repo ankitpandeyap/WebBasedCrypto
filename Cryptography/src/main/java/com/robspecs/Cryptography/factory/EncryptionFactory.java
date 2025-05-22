@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import com.robspecs.Cryptography.Enums.Algorithm;
 import com.robspecs.Cryptography.service.EncryptionService;
-import com.robspecs.Cryptography.Enums.Algorithm;	
 
 @Component
 public class EncryptionFactory {
@@ -50,6 +50,12 @@ public class EncryptionFactory {
         if (service == null) {
             logger.error("Unsupported encryption type: {}", algorithm.name());
             throw new IllegalArgumentException("Unsupported encryption type: " + algorithm.name());
+        }
+
+        if (algorithm == Algorithm.MONO_ALPHABETIC_CIPHER || algorithm == Algorithm.CUSTOM) {
+            logger.warn("SECURITY WARNING: Requesting cryptographically weak algorithm '{}'. " +
+                        "These algorithms (Monoalphabetic, Custom/Caesar) are for demonstration/educational purposes ONLY " +
+                        "and should NOT be used for sensitive data in a production environment.", algorithm.name());
         }
         logger.debug("Returning {} encryption service for algorithm {}", service.getClass().getSimpleName(), algorithm.name());
         return service;

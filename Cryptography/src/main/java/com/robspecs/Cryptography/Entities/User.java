@@ -1,6 +1,14 @@
 package com.robspecs.Cryptography.Entities;
 
+import java.util.Collection; // New import
+import java.util.Collections; // New import (for authorities)
+
+import org.springframework.security.core.GrantedAuthority; // New import
+import org.springframework.security.core.authority.SimpleGrantedAuthority; // New import
+import org.springframework.security.core.userdetails.UserDetails; // New import
+
 import com.robspecs.Cryptography.Enums.Roles;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,14 +16,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-
-import org.springframework.security.core.GrantedAuthority; // New import
-import org.springframework.security.core.authority.SimpleGrantedAuthority; // New import
-import org.springframework.security.core.userdetails.UserDetails; // New import
-
-import java.util.Collection; // New import
-import java.util.Collections; // New import (for authorities)
-import java.util.Set; // Could also use Set for multiple roles
 
 @Entity
 @Table(name = "users", indexes = { @Index(name = "email_idx", columnList = "email", unique = true),
@@ -45,6 +45,30 @@ public class User implements UserDetails { // <-- Implement UserDetails here!
 
 	@Column
 	private String passkeyHash;
+
+	@Column(nullable = true) // Make nullable for existing users, or set default during migration
+	private String passkeySalt; // Stores the salt used to derive the user's encryption key
+
+	@Column(nullable = true, columnDefinition = "TEXT") // Stores the Base64 encoded PBKDF2 derived AES key
+	private String derivedUserEncryptionKey; // This key will encrypt/decrypt the message content key
+
+	// --- Add Getters and Setters for the new fields ---
+
+	public String getPasskeySalt() {
+		return passkeySalt;
+	}
+
+	public void setPasskeySalt(String passkeySalt) {
+		this.passkeySalt = passkeySalt;
+	}
+
+	public String getDerivedUserEncryptionKey() {
+		return derivedUserEncryptionKey;
+	}
+
+	public void setDerivedUserEncryptionKey(String derivedUserEncryptionKey) {
+		this.derivedUserEncryptionKey = derivedUserEncryptionKey;
+	}
 
 	// --- UserDetails Interface Implementations ---
 
