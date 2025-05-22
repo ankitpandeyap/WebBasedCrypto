@@ -1,83 +1,177 @@
-/* src/css/Dashboard.css */
-
-/* Container for centering the dashboard */
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #f7f7f7;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  padding: 20px;
+* COLORS & VARIABLES */
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #6366f1;
+  --bg-color: #f9fafb;
+  --text-color: #1f2937;
+  --error-color: #dc2626;
+  --success-color: #16a34a;
+  --border-radius: 0.5rem;
+  --transition: 0.3s ease-in-out;
+  --font-family: 'Inter', sans-serif;
 }
 
-/* The white box holding the dashboard content */
-.dashboard-box {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 500px;
-  max-height: 80vh;       /* Prevent from exceeding viewport height */
-  overflow-y: auto;       /* Scroll internally if content is too tall */
+/* LAYOUT GRID: Sidebar + Content */
+.main-dashboard-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;         /* fixed sidebar, flexible inbox */
+  grid-template-rows: 1fr;                 /* one row */
+  height: calc(100vh - 60px);              /* full viewport minus header (60px) */
+  overflow: hidden;
+}
+
+/* INBOX PANE: fill grid cell and use flex for centering */
+.inbox-content-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;                            /* crucial: fill the grid row */
+  background: var(--bg-color);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* CENTER LOADER & EMPTY STATE */
+.inbox-content-area > .loading-wrapper,
+.inbox-content-area > .no-messages-text {
+  flex: 1;                                 /* occupy full height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
-/* Heading style */
-.dashboard-box h1 {
-  font-size: 32px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #333;
+/* LOADER TEXT */
+.loading-text {
+  color: #777;
+  font-style: italic;
+  font-size: 1rem;
+  margin: 0;
 }
 
-/* Paragraph general style */
-.dashboard-box p {
-  font-size: 16px;
-  color: #555;
-  margin-bottom: 12px;
-
-  /* Handle long tokens or strings */
-  word-wrap: break-word;
-  word-break: break-all;
-  white-space: pre-wrap;  /* Preserve any spaces/line breaks */
-  display: block;
-  overflow-x: auto;       /* Allow horizontal scroll if still too long */
+/* EMPTY MSG TEXT */
+.no-messages-text {
+  color: #777;
+  font-style: italic;
+  font-size: 1rem;
+  margin: 0;
 }
 
-/* Logout button styling */
-.logout-btn {
-  margin-top: 24px;
-  background-color: #ff5a5f;
-  color: white;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 12px;
+/* MESSAGE LIST CONTAINER */
+.messages-list {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* SINGLE MESSAGE ROW */
+.message-item {
+  background: #fff;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-  font-size: 16px;
+}
+.message-item:last-child {
+  border-bottom: none;
+}
+.message-item:hover {
+  background: #f5f5f5;
+  box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+/* LEFT ACTIONS */
+.message-actions-left {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.message-checkbox {
+  transform: scale(1.1);
+}
+.message-star {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.message-star:hover {
+  opacity: 1;
+}
+
+/* CONTENT COLUMN */
+.message-content-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.message-sender {
   font-weight: 600;
-  transition: background-color 0.2s ease-in-out;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.message-preview {
+  font-size: 0.9rem;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.message-encryption-type {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #888;
+  margin-top: 2px;
 }
 
-.logout-btn:hover {
-  background-color: #e14b50;
+/* RIGHT ACTIONS */
+.message-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 120px;
+  justify-content: flex-end;
+}
+.message-timestamp {
+  font-size: 0.85rem;
+  color: #888;
+}
+.decrypt-btn {
+  background: #6c757d;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+}
+.decrypt-btn:hover {
+  background: #5a6268;
 }
 
-/* Responsive adjustments */
+/* RESPONSIVE TWEAKS */
+@media (max-width: 768px) {
+  .main-dashboard-layout {
+    grid-template-columns: 1fr;           /* hide sidebar or stack below? */
+    grid-template-rows: 240px 1fr;        /* optional stacking */
+  }
+  .message-actions-right {
+    width: auto;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+}
 @media (max-width: 480px) {
-  .dashboard-box {
-    padding: 25px 20px;
-    border-radius: 12px;
-  }
-
-  .dashboard-box h1 {
-    font-size: 28px;
-  }
-
-  .logout-btn {
-    width: 100%;
-    padding: 10px;
-  }
+  .inbox-content-area { padding: 10px; }
+  .message-preview { font-size: 0.85rem; }
 }

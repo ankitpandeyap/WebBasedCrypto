@@ -1,4 +1,3 @@
-import React from 'react';
 import  '../css/Footer.css'; // Or './Footer.css'
 
 function Footer() {

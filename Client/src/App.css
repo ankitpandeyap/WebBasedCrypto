@@ -1,4 +1,12 @@
 /* global.css */
+
+/* Apply box-sizing: border-box globally for consistent layout behavior */
+/* This ensures that padding and borders are included within an element's specified width and height,
+   preventing horizontal scrolling issues. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   --primary-color: #4f46e5;
   --secondary-color: #6366f1;

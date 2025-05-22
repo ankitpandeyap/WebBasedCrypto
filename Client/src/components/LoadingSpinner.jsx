@@ -1,4 +1,3 @@
-import React from 'react';
 import '../css/LoadingSpinner.css'; // Create this file ne
 
 
