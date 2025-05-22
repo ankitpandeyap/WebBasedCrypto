@@ -2,12 +2,12 @@ package com.robspecs.Cryptography.serviceImpl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.robspecs.Cryptography.dto.MessageSummaryDTO;
 import com.robspecs.Cryptography.service.SseEmitterService;
 
@@ -16,10 +16,13 @@ public class RedisSubscriberImpl implements MessageListener {
 
 	private static final Logger log = LoggerFactory.getLogger(RedisSubscriberImpl.class);
 	private final SseEmitterService sseEmitterService;
+	private final RedisTemplate<String, Object> redisTemplate;
 
-	public RedisSubscriberImpl(SseEmitterService sseEmitterService) {
-
+	public RedisSubscriberImpl(SseEmitterService sseEmitterService,
+			@Qualifier("redisJsonTemplate") RedisTemplate<String, Object> redisTemplate) { // Only one RedisTemplate
+																							// parameter
 		this.sseEmitterService = sseEmitterService;
+		this.redisTemplate = redisTemplate; // Assign the correctly qualified RedisTemplate
 	}
 
 	@Override
@@ -31,10 +34,13 @@ public class RedisSubscriberImpl implements MessageListener {
 			// Extract username: channel = "inbox.{username}"
 			String username = channel.substring("inbox.".length());
 
-			// Deserialize payload
-			String json = new String(message.getBody());
-			MessageSummaryDTO dto = new ObjectMapper().registerModule(new JavaTimeModule()).readValue(json,
-					MessageSummaryDTO.class);
+			MessageSummaryDTO dto = (MessageSummaryDTO) redisTemplate.getValueSerializer()
+					.deserialize(message.getBody());
+			if (dto == null) {
+				log.warn("Failed to deserialize Redis message body for channel {}. Deserialized DTO was null.",
+						channel);
+				return; // Stop processing if deserialization fails
+			}
 
 			log.info("Received Redis message for {}: {}", username, dto.getMessageId());
 			sseEmitterService.sendEvent(username, dto);

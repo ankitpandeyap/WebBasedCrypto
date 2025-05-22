@@ -123,18 +123,19 @@ export default function Register() {
       toast.error("Please verify OTP first.");
       return;
     }
-    const passkeyInt = parseInt(passkey, 10);
-    if (isNaN(passkeyInt)) {
-      toast.error("Passkey must be a number.");
+    if (passkey.length < 16) {
+      // A good practice: ensure enough entropy for the key derivation
+      toast.error("Passkey must be at least 16 characters long.");
       return;
     }
+
     setRegistering(true);
     try {
       const res = await axiosInstance.post("/auth/register", {
         email: email,
         userName: userName, // Map 'username' state to 'userName' DTO field
         password: password,
-        passkey: passkeyInt, // Include the passkey
+        passkey: passkey, // Include the passkey
         role: role, // Include the selected role
         name: name,
       });
@@ -151,13 +152,16 @@ export default function Register() {
 
   return (
     <div className="register-container">
-      <div className="register-card"> {/* MINOR: Clarified use of .register-card */}
-        <h2 className="register-title"> {/* MINOR: Clarified use of .register-title */}
+      <div className="register-card">
+        {" "}
+        {/* MINOR: Clarified use of .register-card */}
+        <h2 className="register-title">
+          {" "}
+          {/* MINOR: Clarified use of .register-title */}
           {step === 1 && "Step 1: Send OTP"}
           {step === 2 && "Step 2: Verify OTP"}
           {step === 3 && "Step 3: Complete Registration"}
         </h2>
-
         {step === 1 && (
           <form onSubmit={handleSendOtp} className="register-form">
             <input
@@ -180,7 +184,6 @@ export default function Register() {
             )}
           </form>
         )}
-
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="register-form">
             <input
@@ -203,7 +206,6 @@ export default function Register() {
             )}
           </form>
         )}
-
         {step === 3 && otpVerified && (
           <form onSubmit={handleRegister} className="register-form">
             <input
@@ -227,9 +229,9 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <input
-              type="number"
-              placeholder="Passkey (numeric code)"
+           <input
+              type="text" // Change type from "number" to "text"
+              placeholder="Passkey (secret phrase for encryption) Minimum 16 Characters" // Updated placeholder
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
               required

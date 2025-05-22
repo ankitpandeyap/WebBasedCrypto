@@ -16,14 +16,17 @@ public class PasskeyCacheServiceImpl implements PasskeyCacheService {
 		this.redisTemplate = redisTemplate;
 	}
 
+	@Override
 	public void markValidated(String username) {
 		redisTemplate.opsForValue().set("passkey:validated:" + username, "1", 30, TimeUnit.MINUTES);
 	}
 
+	@Override
 	public boolean isValidated(String username) {
 		return Boolean.TRUE.equals(redisTemplate.hasKey("passkey:validated:" + username));
 	}
 
+	@Override
 	public void clearValidated(String username) {
 		redisTemplate.delete("passkey:validated:" + username);
 	}

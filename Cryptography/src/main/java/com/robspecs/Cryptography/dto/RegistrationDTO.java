@@ -20,7 +20,7 @@ public class RegistrationDTO {
 	private String email;
 
 	@NotNull(message = "Passkey is required")
-	private Integer passkey;
+	private String passkey;
 
 	@NotBlank(message = "Username is required")
 	private String userName;
@@ -65,11 +65,11 @@ public class RegistrationDTO {
 		this.email = email;
 	}
 
-	public Integer getPasskey() {
+	public String getPasskey() {
 		return passkey;
 	}
 
-	public void setPasskey(Integer passkey) {
+	public void setPasskey(String passkey) {
 		this.passkey = passkey;
 	}
 
