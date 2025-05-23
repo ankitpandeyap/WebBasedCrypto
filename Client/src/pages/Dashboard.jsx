@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useState, useCallback } from "react"; // Added useCallback
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import "../css/Dashboard.css";
 import Sidebar from "../components/Sidebar";
 import DecryptModal from "../components/DecryptModal";
+import { API_BASE_URL } from "../config/config";
 
 export default function Dashboard() {
   const [messages, setMessages] = useState([]);
@@ -13,41 +13,115 @@ export default function Dashboard() {
   const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null); // To store the message being decrypted
 
-  // Removed logout and navigate from here as they are now in Header
-  // const { logout } = useContext(AuthContext);
-  // const navigate = useNavigate();
+  // Memoize fetchMessages to prevent unnecessary re-creations
+  const fetchMessages = useCallback(async () => {
+    try {
+      setLoadingMessages(true);
+      const response = await axiosInstance.get("/messages/inbox");
+      const sortedMessages = response.data.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setMessages(sortedMessages);
+      // toast.success("Messages loaded!"); // Removed toast for initial load, can be noisy
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+      toast.error(
+        "Failed to load messages: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []); // No dependencies for initial fetch
 
   useEffect(() => {
-    const fetchMessages = async () => {
+    fetchMessages(); // Fetch messages on component mount
+
+    // --- SSE Integration Start ---
+
+    const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`);
+
+    eventSource.onopen = () => {
+      console.log("SSE connection opened.");
+      toast.info("Real-time updates connected!");
+    };
+
+    eventSource.addEventListener("new-message", (event) => {
+      console.log('New message event data (named "new-message"):', event.data);
       try {
-        setLoadingMessages(true);
-        const response = await axiosInstance.get("/messages/inbox");
-        const sortedMessages = response.data.sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        const newMessage = JSON.parse(event.data);
+        setMessages((prevMessages) => {
+          if (
+            prevMessages.some((msg) => msg.messageId === newMessage.messageId)
+          ) {
+            console.log(
+              "Duplicate message received via SSE, skipping:",
+              newMessage.messageId
+            );
+            return prevMessages;
+          }
+          const updatedMessages = [newMessage, ...prevMessages];
+          return updatedMessages.sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+        });
+        toast.success(`New message from ${newMessage.senderUsername}!`);
+      } catch (e) {
+        console.error(
+          'Error parsing SSE message for "new-message" event:',
+          e,
+          event.data
         );
-        setMessages(sortedMessages);
-        toast.success("Messages loaded!");
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
         toast.error(
-          "Failed to load messages: " + (error.response?.data || error.message)
+          'Failed to parse real-time message for "new-message" event.'
         );
-      } finally {
-        setLoadingMessages(false);
+      }
+    });
+
+    eventSource.onmessage = (event) => {
+      console.log("New message event:", event.data);
+      try {
+        const newMessage = JSON.parse(event.data);
+        setMessages((prevMessages) => {
+          // Check if message already exists (e.g., if re-fetching also occurred)
+          if (
+            prevMessages.some((msg) => msg.messageId === newMessage.messageId)
+          ) {
+            return prevMessages; // Message already in list, do not add
+          }
+          // Add new message and sort by timestamp
+          const updatedMessages = [newMessage, ...prevMessages];
+          return updatedMessages.sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+        });
+        toast.success(`New message from ${newMessage.senderUsername}!`);
+      } catch (e) {
+        console.error("Error parsing SSE message:", e, event.data);
+        toast.error("Failed to parse real-time message.");
       }
     };
 
-    fetchMessages();
-  }, []);
+    eventSource.onerror = (error) => {
+      console.error("SSE Error:", error);
+      // Check for specific error types if needed
+      // For example, if the server sends an error message on the stream
+      toast.error(
+        "Real-time updates disconnected. Please refresh if issues persist."
+      );
+      eventSource.close(); // Close the connection to prevent constant errors
+    };
 
-  // Removed handleLogout as it's now in Header
-  // const handleLogout = async () => { ... };
-
-  // const handleComposeMessage = () => {
-  //   // This will navigate to a new page/modal for composing messages
-  //    navigate('/compose'); // This will be handled by the Sidebar
-  // };
+    // Cleanup function for useEffect
+    return () => {
+      console.log("SSE connection closed.");
+      eventSource.close(); // Close the connection when the component unmounts
+    };
+    // --- SSE Integration End ---
+  }, [fetchMessages]); // Dependency array: Re-run effect if fetchMessages changes (though memoized)
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
@@ -58,28 +132,33 @@ export default function Dashboard() {
     }
 
     if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleString("en-IN", { month: "short", day: "numeric" });
+      return date.toLocaleString("en-IN", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }); // Added time
     } else {
       return date.toLocaleString("en-IN", {
         year: "numeric",
         month: "short",
         day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit", // Added time
       });
     }
   };
 
-  // Function to open the decrypt modal
   const openDecryptModal = (message) => {
     setSelectedMessage(message);
     setIsDecryptModalOpen(true);
   };
 
-  // Function to close the decrypt modal
   const closeDecryptModal = () => {
     setIsDecryptModalOpen(false);
-    setSelectedMessage(null); // Clear selected message when closing
-    // Optionally, re-fetch messages or update the specific message if its status changed
-    // e.g., if you want to mark it as read after decryption
+    setSelectedMessage(null);
+    // Optionally: Re-fetch the message list to update any read/decrypted status
+    // fetchMessages(); // Uncomment this if you want to refresh the entire inbox after decryption
   };
 
   return (

@@ -31,12 +31,12 @@ export default function Header() {
       <div className="header-logo">CRYPTO_APP</div>
       <div className="header-title">{pageTitle}</div>
       <nav className="header-nav">
-        {isAuthenticated && (
-          <button className="header-logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
-        )}
-      </nav>
+  {isAuthenticated && pathname !== "/login" && (
+    <button className="header-logout-btn" onClick={handleLogout}>
+      Logout
+    </button>
+  )}
+</nav>
     </header>
   );
 }

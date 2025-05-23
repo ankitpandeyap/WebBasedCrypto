@@ -1,10 +1,10 @@
 // src/api/axiosInstance.js
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
+import { API_BASE_URL } from '../config/config';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8082/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
