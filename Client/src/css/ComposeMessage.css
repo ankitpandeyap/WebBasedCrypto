@@ -42,6 +42,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px; /* Keep gap for consistency */
+    /* *** ADD THIS LINE *** */
+    position: relative; /* Crucial for positioning the datalist correctly */
 }
 
 .form-label {
@@ -153,7 +155,7 @@
     }
 }
 
-/* ✅ LAYOUT FIXES */
+/* ✅ LAYOUT FIXES (these are typically global, but included here for completeness) */
 html, body {
     height: 100%;
     margin: 0;
@@ -165,4 +167,36 @@ html, body {
     min-height: calc(100vh - 64px); /* full height minus header */
 }
 
+.recipient-autocomplete {
+    position: relative; /* Crucial for positioning the suggestions list */
+}
 
+.suggestions-list {
+    position: absolute;
+    top: 100%; /* Position right below the input */
+    left: 0;
+    right: 0; /* Make it span the full width of the parent */
+    background-color: white;
+    border: 1px solid #ddd;
+    border-top: none; /* No top border, it visually connects to the input */
+    border-radius: 0 0 8px 8px; /* Rounded bottom corners */
+    max-height: 180px; /* Limit height for scrollability */
+    overflow-y: auto;
+    z-index: 1001; /* Ensure it's above other elements, higher than any other modal/dropdown z-index if needed */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    list-style: none; /* Remove bullet points */
+    padding: 0;
+    margin: 0; /* Remove default list margins */
+}
+
+.suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #333;
+    transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}

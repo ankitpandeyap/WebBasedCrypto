@@ -4,15 +4,15 @@ import java.time.LocalDateTime;
 
 public class MessageSummaryDTO {
 	private Long messageId;
-	private String senderEmail;
+	 private String senderUsername;
 	private String encryptedContent;
 	private String encryptionType;
 	private LocalDateTime timestamp;
 
-	public MessageSummaryDTO(Long messageId, String senderEmail, String encryptedContent, String encryptionType,
+	public MessageSummaryDTO(Long messageId, String senderUsername, String encryptedContent, String encryptionType,
 			LocalDateTime timestamp) {
 		this.messageId = messageId;
-		this.senderEmail = senderEmail;
+		this.senderUsername = senderUsername;
 		this.encryptedContent = encryptedContent;
 		this.encryptionType = encryptionType;
 		this.timestamp = timestamp;
@@ -22,8 +22,8 @@ public class MessageSummaryDTO {
 		return messageId;
 	}
 
-	public String getSenderEmail() {
-		return senderEmail;
+	public String getSenderUsername() {
+		return senderUsername;
 	}
 
 	public String getEncryptedContent() {

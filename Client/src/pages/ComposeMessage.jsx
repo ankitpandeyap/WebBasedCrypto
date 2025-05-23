@@ -1,36 +1,89 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
-import Header from "../components/Header"; // Include Header for consistent layout
-import Sidebar from "../components/Sidebar"; // IMPORT Sidebar
-import "../css/ComposeMessage.css"; // Link to its dedicated CSS
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+import "../css/ComposeMessage.css";
 
 export default function ComposeMessage() {
   const [recipient, setRecipient] = useState("");
   const [messageContent, setMessageContent] = useState("");
-  const [encryptionType, setEncryptionType] = useState("AES"); // Default to AES
-  const [passkey, setPasskey] = useState("");
+  const [encryptionType, setEncryptionType] = useState("AES");
   const [loading, setLoading] = useState(false);
-  const [availableUsers, setAvailableUsers] = useState([]); // For recipient suggestions/dropdown
-  const navigate = useNavigate();
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Fetch list of users for recipient selection (optional, but good UX)
+  const navigate = useNavigate();
+  const autocompleteRef = useRef(null); // Ref for the autocomplete container
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // NOTE: This API endpoint /users/all needs to be created on the backend.
-        // If it doesn't exist, this fetch will fail.
         const response = await axiosInstance.get("/users/all");
         setAvailableUsers(response.data);
       } catch (error) {
         console.error("Failed to fetch users:", error);
-        // Do not block the compose functionality if users can be typed manually
-        // toast.error('Failed to load users for recipient list.'); // Optional: show error to user
+        // We will address the 401 error separately.
       }
     };
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (recipient.length > 0) {
+      const filtered = availableUsers.filter((user) =>
+        user.username.toLowerCase().includes(recipient.toLowerCase()) ||
+        user.email.toLowerCase().includes(recipient.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+      // Only show suggestions if there are actual matches AND the input is focused
+      // We will control visibility more strictly with onBlur/onFocus
+    } else {
+      setFilteredSuggestions([]);
+    }
+  }, [recipient, availableUsers]);
+
+  // Handle click outside suggestions to close them
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // If the click is outside the autocomplete container, hide suggestions
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    // Attach event listener to the document
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Clean up the event listener on unmount
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Empty dependency array because autocompleteRef.current is stable
+
+  const handleSuggestionClick = (username, event) => {
+    // Stop the event from bubbling up to the document's mousedown listener
+    event.stopPropagation();
+    setRecipient(username);
+    setShowSuggestions(false); // Hide suggestions after selection
+  };
+
+  // When input is focused, show suggestions if there's text
+  const handleInputFocus = () => {
+    if (recipient.length > 0 && filteredSuggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // When input loses focus, hide suggestions (with a slight delay to allow click on suggestion)
+  const handleInputBlur = () => {
+    // Use a small timeout to allow the handleSuggestionClick to fire before blur hides it
+    setTimeout(() => {
+      setShowSuggestions(false);
+    }, 100);
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,10 +91,9 @@ export default function ComposeMessage() {
 
     try {
       const response = await axiosInstance.post("/messages/send", {
-        recipientUsername: recipient,
-        content: messageContent,
-        encryptionType: encryptionType,
-        passkey: passkey,
+        toUsername: recipient,
+        rawMessage: messageContent,
+        algorithm: encryptionType,
       });
       toast.success(response.data || "Message sent successfully!");
       navigate("/dashboard");
@@ -57,17 +109,14 @@ export default function ComposeMessage() {
 
   return (
     <>
-      <Header /> {/* Header remains at the top */}
-      {/* CORRECTED: main-dashboard-layout to include Sidebar */}
+      <Header />
       <div className="main-dashboard-layout">
-        <Sidebar /> {/* Sidebar on the left */}
-
-        {/* Existing compose-container now acts as the main content area for Compose */}
+        <Sidebar />
         <div className="compose-container">
           <div className="compose-box">
             <h1 className="compose-title">Compose New Message</h1>
             <form onSubmit={handleSubmit} className="compose-form">
-              <div className="form-group">
+              <div className="form-group recipient-autocomplete" ref={autocompleteRef}>
                 <label htmlFor="recipient" className="form-label">
                   To:
                 </label>
@@ -76,17 +125,25 @@ export default function ComposeMessage() {
                   type="text"
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="Recipient username or Email NOTE:PRESENT IN OUR SYSTEM"
+                  onFocus={handleInputFocus} // Use new focus handler
+                  onBlur={handleInputBlur}   // Use new blur handler
+                  placeholder="Recipient username or Email NOTE:PRESENT IN SYSTEM"
                   required
                   className="form-input"
-                  list="available-users" // Use datalist for suggestions if availableUsers populated
                 />
-                {availableUsers.length > 0 && (
-                  <datalist id="available-users">
-                    {availableUsers.map((user) => (
-                      <option key={user.id} value={user.username} />
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <ul className="suggestions-list">
+                    {filteredSuggestions.map((user) => (
+                      <li
+                        key={user.id}
+                        // Pass the event object to stop propagation
+                        onClick={(e) => handleSuggestionClick(user.username, e)}
+                        className="suggestion-item"
+                      >
+                        {user.username} ({user.email})
+                      </li>
                     ))}
-                  </datalist>
+                  </ul>
                 )}
               </div>
 
@@ -128,21 +185,6 @@ export default function ComposeMessage() {
                     secure for sensitive data.
                   </p>
                 )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="passkey" className="form-label">
-                  Passkey:
-                </label>
-                <input
-                  id="passkey"
-                  type="password"
-                  value={passkey}
-                  onChange={(e) => setPasskey(e.target.value)}
-                  placeholder="Passkey for encryption/decryption"
-                  required
-                  className="form-input"
-                />
               </div>
 
               <button

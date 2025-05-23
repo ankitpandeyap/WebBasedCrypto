@@ -164,7 +164,7 @@ public class MessageServiceImpl implements MessageService {
 			List<Message> messages = messageRepo.findByReceiverOrderByTimestampDesc(receiver);
 
 			return messages
-					.stream().map(m -> new MessageSummaryDTO(m.getMessageId(), m.getSender().getEmail(),
+					.stream().map(m -> new MessageSummaryDTO(m.getMessageId(), m.getSender().getUserName(),
 							m.getEncryptedContent(), m.getEncryptionType(), m.getTimestamp()))
 					.collect(Collectors.toList());
 

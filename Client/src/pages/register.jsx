@@ -230,7 +230,7 @@ export default function Register() {
               required
             />
            <input
-              type="text" // Change type from "number" to "text"
+              type="text" 
               placeholder="Passkey (secret phrase for encryption) Minimum 16 Characters" // Updated placeholder
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}

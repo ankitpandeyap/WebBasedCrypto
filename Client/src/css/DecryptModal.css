@@ -1,175 +1,199 @@
-.modal-backdrop {
-    position: fixed; /* Stays in place relative to the viewport */
-    top: 0;
-    left: 0;
-    width: 100vw; /* Full viewport width */
-    height: 100vh; /* Full viewport height */
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
-    display: flex;
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    z-index: 1000; /* Ensure it's on top of other content */
-    backdrop-filter: blur(5px); /* Optional: blur background content */
+/* === Overlay === */
+.decrypt-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
-.modal-content {
-    background-color: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
-    width: 90%;
-    max-width: 500px; /* Max width for the modal */
-    position: relative; /* For positioning the close button */
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* Space between elements inside modal */
-    animation: fadeIn 0.3s ease-out; /* Simple fade-in animation */
+/* === Modal Window === */
+.decrypt-modal-content {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeInModal 0.25s ease-out;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+/* === Animation === */
+@keyframes fadeInModal {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.modal-close-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 1.8rem;
-    color: #888;
-    cursor: pointer;
-    line-height: 1;
-    padding: 5px;
-    transition: color 0.2s ease;
+/* === Close Button === */
+.decrypt-modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s ease;
 }
 
-.modal-close-btn:hover {
-    color: #333;
+.decrypt-modal-close-btn:hover {
+  color: #333;
 }
 
-.modal-content h2 {
-    font-size: 1.8rem;
-    color: #333;
-    margin-bottom: 5px;
+/* === Modal Header === */
+.decrypt-modal-content h2 {
+  font-size: 1.8rem;
+  color: #222;
+  margin-bottom: 5px;
 }
 
-.modal-sender {
-    font-size: 0.95rem;
-    color: #666;
-    margin-bottom: 15px;
+.decrypt-modal-sender {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 10px;
 }
 
+/* === Form === */
 .decrypt-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  align-items: stretch;
 }
 
-.form-label {
-    font-size: 1rem;
-    color: #444;
-    text-align: left;
-    margin-bottom: -10px; /* Adjust to bring label closer to input */
+.decrypt-form-label {
+  font-size: 1rem;
+  color: #444;
+  text-align: left;
+  margin-bottom: -8px;
 }
 
-.form-input {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 1rem;
-    width: 100%;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+.decrypt-form-input {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
 }
 
-.form-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-    outline: none;
+.decrypt-form-input:focus-visible {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  outline: none;
 }
 
+/* === Submit Button === */
 .decrypt-submit-btn {
-    background-color: #007bff; /* Airbnb blue */
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    align-self: center; /* Center the button */
-    width: 100%;
+  background-color: #007bff;
+  color: #fff;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 100%;
 }
 
 .decrypt-submit-btn:hover:not(:disabled) {
-    background-color: #0056b3;
-    transform: translateY(-2px);
+  background-color: #0056b3;
+  transform: translateY(-2px);
 }
 
 .decrypt-submit-btn:disabled {
-    background-color: #a0a0a0;
-    cursor: not-allowed;
+  background-color: #aaa;
+  cursor: not-allowed;
 }
 
-.modal-error {
-    color: #ff5a5f; /* Error red */
-    font-size: 0.9rem;
-    margin-top: 10px;
+/* === Error Message === */
+.decrypt-error-message {
+  color: #ff4d4f;
+  font-size: 0.9rem;
+  margin-top: 5px;
 }
 
-.decrypted-area {
-    text-align: left;
+/* === Decrypted Output === */
+.decrypt-output-container {
     background-color: #f8f8f8;
     padding: 15px;
     border-radius: 8px;
     border: 1px dashed #e0e0e0;
+    text-align: left;
+    /* Add max-height and overflow for scrollability if content gets too long */
+    max-height: 200px; /* Adjust this value as needed */
+    overflow-y: auto; /* Adds a scrollbar if content exceeds max-height */
+    word-break: break-word; /* Ensures long words break to fit */
 }
 
-.decrypted-area h3 {
+.decrypt-output-container h3 {
     font-size: 1.1rem;
     color: #333;
     margin-bottom: 10px;
 }
 
-.decrypted-text {
+.decrypt-output-text {
     font-size: 1rem;
     color: #555;
-    word-wrap: break-word;
-    white-space: pre-wrap; /* Preserve line breaks */
+    white-space: pre-wrap; /* Preserves whitespace and line breaks */
+    word-wrap: break-word; /* Old standard, good fallback */
+    /* Add scrollbar if it still overflows horizontally (less common for text) */
+    overflow-x: hidden; /* Prevent horizontal scrollbar, wrap text instead */
+    text-overflow: ellipsis; /* Not typically useful for multi-line text, but can be used for single-line */
 }
 
-.modal-done-btn {
-    background-color: #28a745; /* Success green */
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-top: 15px;
-    transition: background-color 0.3s ease;
+/* === Done Button === */
+.decrypt-done-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: background-color 0.2s ease;
 }
 
-.modal-done-btn:hover {
-    background-color: #218838;
+.decrypt-done-btn:hover {
+  background-color: #218838;
 }
 
-/* Responsive adjustments for modal */
+/* === Responsive === */
 @media (max-width: 600px) {
-    .modal-content {
-        padding: 20px;
-        max-width: 95%;
-    }
-    .modal-content h2 {
-        font-size: 1.5rem;
-    }
-    .form-input, .decrypt-submit-btn {
-        padding: 10px;
-        font-size: 0.95rem;
-    }
+  .decrypt-modal-content {
+    padding: 20px;
+  }
+
+  .decrypt-modal-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .decrypt-form-input,
+  .decrypt-submit-btn {
+    font-size: 0.95rem;
+    padding: 10px;
+  }
 }

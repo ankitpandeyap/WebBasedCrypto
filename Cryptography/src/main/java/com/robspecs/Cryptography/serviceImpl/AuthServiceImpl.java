@@ -3,6 +3,8 @@ package com.robspecs.Cryptography.serviceImpl;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import com.robspecs.Cryptography.Entities.User; // Assuming this is your User entity
 import com.robspecs.Cryptography.Enums.Roles; // Assuming this is your Roles enum
 import com.robspecs.Cryptography.dto.RegistrationDTO;
+import com.robspecs.Cryptography.dto.UserDTO;
 import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
 import com.robspecs.Cryptography.exceptions.UserAlreadyExistsException;
 import com.robspecs.Cryptography.repository.UserRepository;
@@ -107,4 +110,6 @@ public class AuthServiceImpl implements AuthService {
         logger.info("User saved to database with ID: {}", savedUser.getUserId());
         return savedUser;
     }
+    
+  
 }

@@ -3,12 +3,8 @@ package com.robspecs.Cryptography.service;
 import java.util.List;
 
 import com.robspecs.Cryptography.Entities.User;
-import com.robspecs.Cryptography.dto.RegistrationDTO;
 import com.robspecs.Cryptography.dto.UserDTO;
 
-public interface AuthService {
-
-	User registerNewUser(RegistrationDTO regDTO);
-	
-
+public interface UserService {
+	 public List<UserDTO> getAllUsers(User user);
 }

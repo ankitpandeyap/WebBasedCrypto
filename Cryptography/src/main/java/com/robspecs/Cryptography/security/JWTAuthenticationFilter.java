@@ -81,7 +81,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 				 ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
 	                        .httpOnly(true)
 	                        .secure(false) // Set to true in production with HTTPS
-	                        .path("/api/auth/refresh") // Or "/" if you want it available everywhere
+	                        .path("/") // Or "/" if you want it available everywhere
 	                        .maxAge(Duration.ofDays(7)) // Use Duration for clarity and safety (7 days)
 	                        .build();
 				 response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());

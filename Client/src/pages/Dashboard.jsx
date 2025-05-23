@@ -82,7 +82,7 @@ export default function Dashboard() {
     // e.g., if you want to mark it as read after decryption
   };
 
- return (
+  return (
     <>
       <Header />
       <div className="main-dashboard-layout">
@@ -95,7 +95,7 @@ export default function Dashboard() {
           ) : messages.length === 0 ? (
             <p className="no-messages-text">No messages in your inbox yet.</p>
           ) : (
-            <div className="messages-list">
+            <div className="message-list">
               {messages.map((message) => (
                 <div key={message.messageId} className="message-item">
                   <div className="message-actions-left">
@@ -104,17 +104,19 @@ export default function Dashboard() {
                       ⭐
                     </span>
                   </div>
+
                   <div className="message-content-main">
                     <span className="message-sender">
                       {message.senderUsername}
                     </span>
-                    <p className="message-preview">
-                      {message.encryptedContent.slice(0, 70)}...
+                    <p className="message-subject">
+                      {message.encryptedContent.substring(0, 70)}...
                     </p>
                     <span className="message-encryption-type">
                       Algorithm: {message.encryptionType}
                     </span>
                   </div>
+
                   <div className="message-actions-right">
                     <span className="message-timestamp">
                       {formatTimestamp(message.timestamp)}
@@ -132,6 +134,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
       {isDecryptModalOpen && selectedMessage && (
         <DecryptModal message={selectedMessage} onClose={closeDecryptModal} />
       )}
