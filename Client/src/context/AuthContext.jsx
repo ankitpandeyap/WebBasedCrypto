@@ -1,6 +1,6 @@
 // src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance"; // Make sure this path is correct
+import React, { createContext, useState, useEffect,useCallback } from "react";
+import axiosInstance, { setAuthUpdateToken } from "../api/axiosInstance"; // Import setAuthUpdateToke
 
 export const AuthContext = createContext();
 
@@ -9,6 +9,23 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true); // True initially, until check completes
+
+
+const updateToken = useCallback((newToken) => {
+    localStorage.setItem("accessToken", newToken);
+    setAccessToken(newToken);
+    setIsAuthenticated(true);
+    axiosInstance.defaults.headers.common[
+      "Authorization"
+    ] = `Bearer ${newToken}`;
+  }, []); // Empty dependency array means this function is stable
+
+  // Set the updateToken function in the axiosInstance
+  useEffect(() => {
+    setAuthUpdateToken(updateToken);
+  }, [updateToken]); // Re-run if updateToken itself changes (though useCallback should prevent this)
+
+
 
   // Effect to perform initial authentication check when component mounts
   useEffect(() => {
@@ -20,14 +37,17 @@ export const AuthProvider = ({ children }) => {
           // Attempt to validate the token using your /api/auth/validate endpoint
           // axiosInstance interceptors will automatically add the Authorization header
           // and handle refresh logic if configured.
-          await axiosInstance.get("/api/auth/validate");
+          await axiosInstance.get("/auth/validate");
 
           // If the validation call succeeds, set authenticated state
           setIsAuthenticated(true);
           setAccessToken(storedToken); // Use the stored token
         } catch (error) {
           // If validation fails (e.g., 401/403 from backend), token is invalid/expired
-          console.error("Stored token is invalid or expired via /api/auth/validate:", error);
+          console.error(
+            "Stored token is invalid or expired via /api/auth/validate:",
+            error
+          );
           localStorage.removeItem("accessToken"); // Remove invalid token
           setIsAuthenticated(false);
           setAccessToken(null);
@@ -44,7 +64,9 @@ export const AuthProvider = ({ children }) => {
   // Function to handle user login
   const login = (token) => {
     // Extract token value if it comes with "Bearer " prefix
-    const tokenValue = token.startsWith("Bearer ") ? token.split(" ")[1] : token;
+    const tokenValue = token.startsWith("Bearer ")
+      ? token.split(" ")[1]
+      : token;
     localStorage.setItem("accessToken", tokenValue); // Store in local storage
     setIsAuthenticated(true); // Update authentication status
     setAccessToken(tokenValue); // Store the token in state
@@ -63,12 +85,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  
+
   // Provide the state variables and functions to components consuming this context
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, accessToken, loadingAuth }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, login, logout, accessToken, loadingAuth , updateToken}}
+    >
       {/* Conditionally render children or a loading indicator based on loadingAuth state */}
       {loadingAuth ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.2em' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+            fontSize: "1.2em",
+          }}
+        >
           Loading application...
         </div>
       ) : (

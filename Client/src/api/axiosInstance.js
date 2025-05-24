@@ -8,51 +8,41 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+let authUpdateToken = null;
+
+export const setAuthUpdateToken = (callback) => {
+  authUpdateToken = callback;
+};
+
 // Add a request interceptor to attach the token
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
-
     }
     return config;
-  },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      window.location.href = '/login'; // Force logout
-    }
-    return Promise.reject(error);
   }
-
+  
 );
 
 // Define paths where automatic redirect to /login should be suppressed
-// if a token refresh attempt ultimately fails.
-// Ensure these paths match your actual react-router-dom routes.
 const NO_REDIRECT_ON_REFRESH_FAILURE_PATHS = ['/login', '/register'];
-// If you have a separate route like '/verify-otp', add it to the list:
-// const NO_REDIRECT_ON_REFRESH_FAILURE_PATHS = ['/login', '/register', '/verify-otp'];
 
 axiosInstance.interceptors.response.use(
-  (response) => response, // If successful, just return the response
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Check for 401 Unauthorized, ensure it's not already retried,
-    // and that it's not a login or refresh request itself.
     if (
       error.response &&
       error.response.status === 401 &&
       !originalRequest._retry &&
-      originalRequest.url !== '/auth/login' && // Prevent infinite loop for login failures
-      originalRequest.url !== '/auth/refresh' // Prevent infinite loop for refresh failures
+      originalRequest.url !== '/auth/login' &&
+      originalRequest.url !== '/auth/refresh'
     ) {
-      originalRequest._retry = true; // Mark request as retried
+      originalRequest._retry = true;
 
-      // ONLY attempt refresh if an accessToken exists in localStorage.
-      // This implies a user was previously logged in.
       const hasAccessToken = localStorage.getItem('accessToken');
 
       if (hasAccessToken) {
@@ -65,26 +55,34 @@ axiosInstance.interceptors.response.use(
               ? authorizationHeader.split(' ')[1]
               : authorizationHeader;
 
-            localStorage.setItem('accessToken', tokenValue); // Update local storage with new token
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenValue}`; // Update default header
-            originalRequest.headers['Authorization'] = `Bearer ${tokenValue}`; // Update header for the original failed request
+            localStorage.setItem('accessToken', tokenValue);
+            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenValue}`;
+            originalRequest.headers['Authorization'] = `Bearer ${tokenValue}`;
 
-            // Retry the original request with the new token
+            //  Call authUpdateToken to update AuthContext state
+            if (authUpdateToken) {
+              authUpdateToken(tokenValue); // Notify AuthContext about the new token
+            }
+
+
             return axiosInstance(originalRequest);
           } else {
-            // Refresh API responded successfully (e.g., 200 OK) but didn't provide a new token.
-            // This indicates a successful refresh but an issue on the backend with token provision.
             toast.error('Session update failed (no new token received). Please log in again.');
             localStorage.removeItem('accessToken');
             delete axiosInstance.defaults.headers.common['Authorization'];
 
+            // HIGHLIGHTED CHANGE START: Call authUpdateToken to clear AuthContext state
+            if (authUpdateToken) {
+                authUpdateToken(null); // Notify AuthContext that the token is gone
+            }
+            // HIGHLIGHTED CHANGE END
+
             if (!NO_REDIRECT_ON_REFRESH_FAILURE_PATHS.includes(window.location.pathname)) {
-              window.location.href = '/login'; // Redirect to login
+              window.location.href = '/login';
             }
             return Promise.reject(new Error('Token refresh successful but no new token received.'));
           }
         } catch (refreshError) {
-          // Refresh token API call failed (e.g., refresh token expired, invalid, or network issue).
           let apiErrorMessage;
 
           if (refreshError.response && refreshError.response.data) {
@@ -97,31 +95,30 @@ axiosInstance.interceptors.response.use(
             }
           }
 
-          // Use the extracted API error message or a default fallback message.
           const displayMessage = apiErrorMessage || 'Your session has expired. Please log in again.';
           toast.error(displayMessage);
 
-          localStorage.removeItem('accessToken'); // Clear invalid token
-          delete axiosInstance.defaults.headers.common['Authorization']; // Clear header
+          localStorage.removeItem('accessToken');
+          delete axiosInstance.defaults.headers.common['Authorization'];
+
+          // HIGHLIGHTED CHANGE START: Call authUpdateToken to clear AuthContext state
+          if (authUpdateToken) {
+              authUpdateToken(null); // Notify AuthContext that the token is gone
+          }
+          // HIGHLIGHTED CHANGE END
 
           if (!NO_REDIRECT_ON_REFRESH_FAILURE_PATHS.includes(window.location.pathname)) {
-            window.location.href = '/login'; // Redirect to login
+            window.location.href = '/login';
           }
-          return Promise.reject(refreshError); // Reject the original error
+          return Promise.reject(refreshError);
         }
       } else {
-        // If there's no accessToken in localStorage, it means the user is not authenticated
-        // in a persistent session, so don't attempt a refresh. Just reject the original error.
-        // This covers cases like registration or initial login attempts.
         return Promise.reject(error);
       }
     }
 
-    // For any other error (not 401, already retried, or login/refresh request)
     return Promise.reject(error);
   }
 );
-
-
 
 export default axiosInstance;

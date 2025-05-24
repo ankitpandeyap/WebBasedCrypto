@@ -1,39 +1,52 @@
-import React, { useEffect, useState, useCallback, useContext } from "react"; // Added useCallback
+// src/pages/Dashboard.jsx
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import "../css/Dashboard.css";
 import Sidebar from "../components/Sidebar";
 import DecryptModal from "../components/DecryptModal";
-import { API_BASE_URL } from "../config/config";
-import { EventSource } from "eventsource";
-import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+// REMOVE: import { EventSource } from "eventsource"; // SSE is now managed globally
+// REMOVE: import { API_BASE_URL } from "../config/config"; // SSE is now managed globally
+import { AuthContext } from "../context/AuthContext";
+import { SseContext } from "../context/SseContext"; // Import SseContext to consume messages
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  // Get authState from context
-  const { accessToken,loadingAuth} = useContext(AuthContext);
+  const { accessToken, loadingAuth } = useContext(AuthContext);
+  // Consume receivedMessages and connection status from SseContext
+  const { receivedMessages } = useContext(SseContext);
   const navigate = useNavigate();
-  // Extract accessToken and loadingAuth from authState
-  const token = accessToken; // <-- GET TOKEN FROM AUTHCONTEXT
-  
 
+  // State to hold all messages (fetched from API + received via SSE)
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null); // To store the message being decrypted
+  const [selectedMessage, setSelectedMessage] = useState(null);
 
-  // Memoize fetchMessages to prevent unnecessary re-creations
+  // REMOVE: eventSourceRef and hasConnectedRef - SSE connection is global now
+
+  // Function to fetch messages from the backend API
   const fetchMessages = useCallback(async () => {
     try {
       setLoadingMessages(true);
       const response = await axiosInstance.get("/messages/inbox");
-      const sortedMessages = response.data.sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-      setMessages(sortedMessages);
-      // toast.success("Messages loaded!"); // Removed toast for initial load, can be noisy
+      const fetchedMessages = response.data;
+
+      // Combine fetched messages with any messages already accumulated in SseContext
+      // This ensures messages received while on other pages are also displayed.
+      setMessages((prevMessages) => {
+          const combined = [...fetchedMessages]; // Start with freshly fetched messages
+          receivedMessages.forEach(sseMsg => {
+              // Add SSE messages only if they are not already present in the fetched list
+              if (!combined.some(fetchedMsg => fetchedMsg.messageId === sseMsg.messageId)) {
+                  combined.push(sseMsg);
+              }
+          });
+          // Sort the combined list by timestamp (latest first)
+          return combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      });
+
     } catch (error) {
       console.error("Failed to fetch messages:", error);
       toast.error(
@@ -43,151 +56,67 @@ export default function Dashboard() {
     } finally {
       setLoadingMessages(false);
     }
-  }, []); // No dependencies for initial fetch
+  }, [receivedMessages]); // Re-run fetchMessages if new SSE messages arrive while Dashboard is mounted
 
+  // REMOVE: connectToSSE and disconnectSSE functions as they are now in SseContext
+
+  // Effect to handle initial loading and authentication check
   useEffect(() => {
-    if (loadingAuth) {
-      console.log("Dashboard: Authentication check in progress, waiting...");
-      return; // Don't proceed until auth is loaded
-    }
+    if (loadingAuth) return; // Wait until authentication status is known
 
-    fetchMessages(); // Fetch messages on component mount
-
-    // --- SSE Integration Start ---
-    if (!token) {
-      console.warn(
-        "SSE: No access token available in AuthContext. Cannot establish stream."
-      );
-      toast.error("Session expired or not logged in. Please log in again.");
-      // You might want to redirect to login if token is null here
-      // window.location.href = "/login";
+    if (!accessToken) {
+      toast.error("Session expired. Please log in.");
       navigate("/login");
-      return; // Exit effect if no token after auth check
+      return;
     }
 
-    console.log(
-      "SSE: Attempting to establish connection with token via Authorization header."
-    );
+    // Fetch initial messages when the component mounts and auth is ready
+    fetchMessages();
 
-    const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`, {
-      fetch: (input, init) => {
-        return fetch(input, {
-          ...init,
-          headers: {
-            ...init?.headers,
-            Authorization: `Bearer ${token}`,
-          },
+    // No cleanup for SSE connection here, as it's managed by SseContext
+    // The SSE connection will persist even if Dashboard unmounts
+  }, [fetchMessages, accessToken, loadingAuth, navigate]);
+
+  // Effect to update the 'messages' state whenever 'receivedMessages' from SseContext changes.
+  // This handles real-time updates while the user is on the Dashboard page.
+  useEffect(() => {
+    setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages];
+        receivedMessages.forEach(sseMsg => {
+            if (!updatedMessages.some(msg => msg.messageId === sseMsg.messageId)) {
+                updatedMessages.push(sseMsg);
+            }
         });
-      },
+        return updatedMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     });
+  }, [receivedMessages]); // This effect runs whenever receivedMessages array changes
 
-    eventSource.onopen = () => {
-      console.log("SSE connection opened.");
-      toast.info("Real-time updates connected!");
-    };
-
-    eventSource.addEventListener("new-message", (event) => {
-      console.log('New message event data (named "new-message"):', event.data);
-      try {
-        const newMessage = JSON.parse(event.data);
-        setMessages((prevMessages) => {
-          if (
-            prevMessages.some((msg) => msg.messageId === newMessage.messageId)
-          ) {
-            console.log(
-              "Duplicate message received via SSE, skipping:",
-              newMessage.messageId
-            );
-            return prevMessages;
-          }
-          const updatedMessages = [newMessage, ...prevMessages];
-          return updatedMessages.sort(
-            (a, b) =>
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
-        });
-        toast.success(`New message from ${newMessage.senderUsername}!`);
-      } catch (e) {
-        console.error(
-          'Error parsing SSE message for "new-message" event:',
-          e,
-          event.data
-        );
-        toast.error(
-          'Failed to parse real-time message for "new-message" event.'
-        );
-      }
-    });
-
-    eventSource.onmessage = (event) => {
-      console.log("New message event:", event.data);
-      try {
-        const newMessage = JSON.parse(event.data);
-        setMessages((prevMessages) => {
-          // Check if message already exists (e.g., if re-fetching also occurred)
-          if (
-            prevMessages.some((msg) => msg.messageId === newMessage.messageId)
-          ) {
-            return prevMessages; // Message already in list, do not add
-          }
-          // Add new message and sort by timestamp
-          const updatedMessages = [newMessage, ...prevMessages];
-          return updatedMessages.sort(
-            (a, b) =>
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
-        });
-        toast.success(`New message from ${newMessage.senderUsername}!`);
-      } catch (e) {
-        console.error("Error parsing SSE message:", e, event.data);
-        toast.error("Failed to parse real-time message.");
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error("SSE Error:", error);
-      // Check for specific error types if needed
-      // For example, if the server sends an error message on the stream
-      toast.error(
-        "Real-time updates disconnected. Please refresh if issues persist."
-      );
-      eventSource.close(); // Close the connection to prevent constant errors
-    };
-
-    // Cleanup function for useEffect
-    return () => {
-      console.log("SSE connection closed.");
-      eventSource.close(); // Close the connection when the component unmounts
-    };
-    // --- SSE Integration End ---
-  }, [fetchMessages,token, loadingAuth]); // Dependency array: Re-run effect if fetchMessages changes (though memoized)
-
+  // Helper function to format message timestamps
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
+    if (isNaN(date)) return "Invalid Date"; // Handle invalid date inputs
 
-    if (isNaN(date)) {
-      return "Invalid Date";
-    }
-
+    // Format based on whether the message is from the current year
     if (date.getFullYear() === now.getFullYear()) {
       return date.toLocaleString("en-IN", {
         month: "short",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      }); // Added time
+      });
     } else {
       return date.toLocaleString("en-IN", {
         year: "numeric",
         month: "short",
         day: "numeric",
         hour: "2-digit",
-        minute: "2-digit", // Added time
+        minute: "2-digit",
       });
     }
   };
 
+  // Functions to manage the decrypt modal
   const openDecryptModal = (message) => {
     setSelectedMessage(message);
     setIsDecryptModalOpen(true);
@@ -196,8 +125,6 @@ export default function Dashboard() {
   const closeDecryptModal = () => {
     setIsDecryptModalOpen(false);
     setSelectedMessage(null);
-    // Optionally: Re-fetch the message list to update any read/decrypted status
-    // fetchMessages(); // Uncomment this if you want to refresh the entire inbox after decryption
   };
 
   return (
@@ -206,7 +133,8 @@ export default function Dashboard() {
       <div className="main-dashboard-layout">
         <Sidebar />
         <div className="inbox-content-area">
-          {loadingMessages ? (
+          {/* Conditional rendering for loading, no messages, or message list */}
+          {loadingMessages && messages.length === 0 ? ( // Show loading only if no messages are present yet
             <div className="loading-wrapper">
               <p className="loading-text">Loading messages...</p>
             </div>
@@ -253,6 +181,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Decrypt Modal component */}
       {isDecryptModalOpen && selectedMessage && (
         <DecryptModal message={selectedMessage} onClose={closeDecryptModal} />
       )}

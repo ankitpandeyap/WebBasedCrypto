@@ -2,6 +2,7 @@ package com.robspecs.Cryptography.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
@@ -106,17 +107,31 @@ public class RedisConfig {
 		logger.debug("RedisMessageListenerContainer bean created.");
 		return container;
 	}
+	
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        logger.info("ObjectMapper bean created and configured for JSON serialization.");
+        return objectMapper;
+    }
+	
+	
+    @Bean
+    public MessageListenerAdapter listenerAdapter(RedisSubscriberImpl subscriber,
+                                                  @Qualifier("redisJsonTemplate") RedisTemplate<String,Object> redisJsonTemplate) {
+        logger.info("Configuring MessageListenerAdapter with GenericJackson2JsonRedisSerializer");
 
-	@Bean
-	public MessageListenerAdapter listenerAdapter(RedisSubscriberImpl subscriber) {
-		logger.info("Configuring MessageListenerAdapter for RedisSubscriber.");
-		// The 'onMessage' method in RedisSubscriber will be invoked when a message
-		// arrives
-		MessageListenerAdapter adapter = new MessageListenerAdapter(subscriber, "onMessage");
-		logger.debug("MessageListenerAdapter bean created, delegating to 'onMessage' method of RedisSubscriber.");
-		return adapter;
-	}
+        // Grab the same JSON serializer you use on your redisJsonTemplate
+        GenericJackson2JsonRedisSerializer ser =
+            (GenericJackson2JsonRedisSerializer)redisJsonTemplate.getValueSerializer();
 
+        MessageListenerAdapter adapter = new MessageListenerAdapter(subscriber, "receiveMessage");
+        adapter.setSerializer(ser);
+        return adapter;
+    }
+    
 	@Bean(name = "redisMessageExecutor") // Explicitly named for clarity
 	public TaskExecutor redisMessageExecutor() {
 		logger.info("Configuring dedicated TaskExecutor 'redisMessageExecutor' for Redis message listeners.");

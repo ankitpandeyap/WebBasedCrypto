@@ -3,59 +3,71 @@ package com.robspecs.Cryptography.serviceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.robspecs.Cryptography.dto.MessageSummaryDTO;
 import com.robspecs.Cryptography.service.SseEmitterService;
 
+import jakarta.annotation.PostConstruct;
+
 @Service
-public class RedisSubscriberImpl implements MessageListener {
+public class RedisSubscriberImpl {
 
 	private static final Logger log = LoggerFactory.getLogger(RedisSubscriberImpl.class);
 	private final SseEmitterService sseEmitterService;
 	private final RedisTemplate<String, Object> redisTemplate;
-	private static final String INBOX_PREFIX = "inbox.";
+
+	private final ObjectMapper objectMapper; // Inject ObjectMapper
 
 	public RedisSubscriberImpl(SseEmitterService sseEmitterService,
-			@Qualifier("redisJsonTemplate") RedisTemplate<String, Object> redisTemplate) { // Only one RedisTemplate
-																							// parameter
+			@Qualifier("redisJsonTemplate") RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
 		this.sseEmitterService = sseEmitterService;
-		this.redisTemplate = redisTemplate; // Assign the correctly qualified RedisTemplate
+		this.redisTemplate = redisTemplate;
+
+		this.objectMapper = objectMapper; // Assign ObjectMapper
+		log.info("RedisSubscriberImpl initialized.");
 	}
 
-	@Override
-	public void onMessage(Message message, byte[] pattern) {
+	public void receiveMessage(Object raw) {
+		// --- END OF MODIFICATION ---
+		MessageSummaryDTO messageSummary = objectMapper.convertValue(raw, MessageSummaryDTO.class);
 		try {
-			// RedisTemplate used GenericJackson2JsonRedisSerializer, so message.getBody()
-			// is JSON bytes
-			String channel = new String(message.getChannel());
-			// Extract username: channel = "inbox.{username}"
-			String username = channel.substring("inbox.".length());
+			// No more manual deserialization or extracting from raw 'Message' object.
+			// The `messageSummary` object is already your DTO!
 
-			if (!channel.startsWith(INBOX_PREFIX)) {
-			    log.warn("Received message on unknown channel: {}", channel);
-			    return;
+		
+			
+			if (messageSummary == null) {
+				log.warn("Received null MessageSummaryDTO from Redis. Skipping event processing.");
+				return;
 			}
 
-			MessageSummaryDTO dto = (MessageSummaryDTO) redisTemplate.getValueSerializer()
-					.deserialize(message.getBody());
-			if (dto == null) {
-				log.warn("Failed to deserialize Redis message body for channel {}. Deserialized DTO was null.",
-						channel);
-				return; // Stop processing if deserialization fails
+			// --- USE THE NEW `receiverUsername` FIELD FROM DTO ---
+			String receiverUsername = messageSummary.getReceiverUsername(); // <-- Directly get the receiver's username
+			// --- END OF USE ---
+
+			if (receiverUsername == null || receiverUsername.isEmpty()) {
+				log.warn(
+						"Received message (ID: {}) without a specified receiver username for SSE routing. Skipping event processing.",
+						messageSummary.getMessageId());
+				return;
 			}
 
-			log.info("Received Redis message for {}: {}", username, dto.getMessageId());
-			sseEmitterService.sendEvent(username, dto);
+			log.info("RedisSubscriberImpl: Received message for user '{}': Message ID = {}", receiverUsername,
+					messageSummary.getMessageId());
+			sseEmitterService.sendEvent(receiverUsername, messageSummary); // Send the DTO directly
+			log.info("RedisSubscriberImpl: Successfully passed message ID {} to SseEmitterService for user {}",
+					messageSummary.getMessageId(), receiverUsername);
 
 		} catch (Exception e) {
-			log.warn("Could not deserialize: {} from channel: {}", new String(message.getBody()), new String(message.getChannel().toString()));
-			log.error("Error in RedisSubscriber onMessage", e);
+			log.error("Error in RedisSubscriber processing message for SSE. Message ID: {}. Error: {}",
+					messageSummary != null ? messageSummary.getMessageId() : "N/A", e.getMessage(), e);
 		}
-
 	}
 
 }

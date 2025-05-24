@@ -145,9 +145,18 @@ public class MessageServiceImpl implements MessageService {
 		log.info("Message sending process completed successfully for message ID: {}", msg.getMessageId());
 
 		try {
-			MessageSummaryDTO summary = new MessageSummaryDTO(msg.getMessageId(), sender.getEmail(),
-					msg.getEncryptedContent(), msg.getEncryptionType(), msg.getTimestamp());
-			redisPublisher.publishNewMessage(receiver, summary);
+		    MessageSummaryDTO summary = new MessageSummaryDTO(
+		            msg.getMessageId(),
+		            sender.getEmail(), // This is still the sender's email/username
+		            msg.getEncryptedContent(),
+		            msg.getEncryptionType(),
+		            msg.getTimestamp(),
+		            receiver.getUserName() // <-- PASS THE RECEIVER'S USERNAME HERE
+		        );
+
+		    log.info("About to call redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName()); // <--- ADD THIS
+		    redisPublisher.publishNewMessage(receiver, summary);
+		    log.info("Successfully called redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName()); // <--- ADD THIS
 			log.debug("Published new-message event to Redis for {}", receiver.getUserName());
 		} catch (Exception e) {
 			log.error("Failed to publish Redis event for Message[{}]: {}", msg.getMessageId(), e.getMessage(), e);
@@ -164,13 +173,18 @@ public class MessageServiceImpl implements MessageService {
 			List<Message> messages = messageRepo.findByReceiverOrderByTimestampDesc(receiver);
 
 			return messages
-					.stream().map(m -> new MessageSummaryDTO(m.getMessageId(), m.getSender().getUserName(),
-							m.getEncryptedContent(), m.getEncryptionType(), m.getTimestamp()))
+					.stream().map(m -> new MessageSummaryDTO(
+							m.getMessageId(),
+							m.getSender().getUserName(), // Sender's username
+							m.getEncryptedContent(),
+							m.getEncryptionType(),
+							m.getTimestamp(),
+							receiver.getUserName() // <--- ADD THIS: The receiver's username for *this* inbox
+					))
 					.collect(Collectors.toList());
 
-		} catch (Exception ex) { // Can keep as Exception or more specific if needed (e.g., DataAccessException)
+		} catch (Exception ex) {
 			log.error("Error listing inbox for userId={}: {}", receiver.getUserId(), ex.getMessage(), ex);
-			// For now, keeping as RuntimeException, but consider a more specific custom exception like DataRetrievalException
 			throw new RuntimeException("Could not retrieve inbox messages", ex);
 		}
 	}
