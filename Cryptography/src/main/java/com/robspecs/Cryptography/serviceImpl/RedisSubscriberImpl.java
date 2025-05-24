@@ -17,6 +17,7 @@ public class RedisSubscriberImpl implements MessageListener {
 	private static final Logger log = LoggerFactory.getLogger(RedisSubscriberImpl.class);
 	private final SseEmitterService sseEmitterService;
 	private final RedisTemplate<String, Object> redisTemplate;
+	private static final String INBOX_PREFIX = "inbox.";
 
 	public RedisSubscriberImpl(SseEmitterService sseEmitterService,
 			@Qualifier("redisJsonTemplate") RedisTemplate<String, Object> redisTemplate) { // Only one RedisTemplate
@@ -34,6 +35,11 @@ public class RedisSubscriberImpl implements MessageListener {
 			// Extract username: channel = "inbox.{username}"
 			String username = channel.substring("inbox.".length());
 
+			if (!channel.startsWith(INBOX_PREFIX)) {
+			    log.warn("Received message on unknown channel: {}", channel);
+			    return;
+			}
+
 			MessageSummaryDTO dto = (MessageSummaryDTO) redisTemplate.getValueSerializer()
 					.deserialize(message.getBody());
 			if (dto == null) {
@@ -46,6 +52,7 @@ public class RedisSubscriberImpl implements MessageListener {
 			sseEmitterService.sendEvent(username, dto);
 
 		} catch (Exception e) {
+			log.warn("Could not deserialize: {} from channel: {}", new String(message.getBody()), new String(message.getChannel().toString()));
 			log.error("Error in RedisSubscriber onMessage", e);
 		}
 

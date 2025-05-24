@@ -32,6 +32,6 @@ public class UserDTO {
 	public void setEmail(String email) {
 		this.email = email;
 	}
-  
-	
+
+
 }

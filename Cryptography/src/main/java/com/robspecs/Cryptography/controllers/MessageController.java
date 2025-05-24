@@ -21,16 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.robspecs.Cryptography.Entities.User;
 import com.robspecs.Cryptography.dto.MessageRequestDTO;
 import com.robspecs.Cryptography.dto.MessageSummaryDTO;
+import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
+import com.robspecs.Cryptography.exceptions.InvalidPasskeyException;
+import com.robspecs.Cryptography.exceptions.MissingEncryptionKeyException;
+import com.robspecs.Cryptography.exceptions.NotFoundException;
+import com.robspecs.Cryptography.exceptions.UnauthorizedException;
 import com.robspecs.Cryptography.service.MessageService;
 import com.robspecs.Cryptography.service.PasskeyCacheService;
 
 import jakarta.validation.Valid;
-
-import com.robspecs.Cryptography.exceptions.NotFoundException;
-import com.robspecs.Cryptography.exceptions.UnauthorizedException;
-import com.robspecs.Cryptography.exceptions.InvalidPasskeyException;
-import com.robspecs.Cryptography.exceptions.MissingEncryptionKeyException;
-import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
 
 @RestController
 @RequestMapping("/api/messages")

@@ -33,9 +33,10 @@ export default function ComposeMessage() {
 
   useEffect(() => {
     if (recipient.length > 0) {
-      const filtered = availableUsers.filter((user) =>
-        user.username.toLowerCase().includes(recipient.toLowerCase()) ||
-        user.email.toLowerCase().includes(recipient.toLowerCase())
+      const filtered = availableUsers.filter(
+        (user) =>
+          user.username.toLowerCase().includes(recipient.toLowerCase()) ||
+          user.email.toLowerCase().includes(recipient.toLowerCase())
       );
       setFilteredSuggestions(filtered);
       // Only show suggestions if there are actual matches AND the input is focused
@@ -49,7 +50,10 @@ export default function ComposeMessage() {
   useEffect(() => {
     const handleClickOutside = (event) => {
       // If the click is outside the autocomplete container, hide suggestions
-      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
+      if (
+        autocompleteRef.current &&
+        !autocompleteRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -84,7 +88,6 @@ export default function ComposeMessage() {
     }, 100);
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -116,7 +119,10 @@ export default function ComposeMessage() {
           <div className="compose-box">
             <h1 className="compose-title">Compose New Message</h1>
             <form onSubmit={handleSubmit} className="compose-form">
-              <div className="form-group recipient-autocomplete" ref={autocompleteRef}>
+              <div
+                className="form-group recipient-autocomplete"
+                ref={autocompleteRef}
+              >
                 <label htmlFor="recipient" className="form-label">
                   To:
                 </label>
@@ -126,7 +132,7 @@ export default function ComposeMessage() {
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
                   onFocus={handleInputFocus} // Use new focus handler
-                  onBlur={handleInputBlur}   // Use new blur handler
+                  onBlur={handleInputBlur} // Use new blur handler
                   placeholder="Recipient username or Email NOTE:PRESENT IN SYSTEM"
                   required
                   className="form-input"
@@ -173,16 +179,15 @@ export default function ComposeMessage() {
                   className="form-select"
                 >
                   <option value="AES">AES</option>
-                  <option value="CAESAR">Caesar</option>
+
                   <option value="MONO_ALPHABETIC_CIPHER">Monoalphabetic</option>
                   <option value="CUSTOM">Custom</option>
                 </select>
-                {(encryptionType === "CAESAR" ||
-                  encryptionType === "MONO_ALPHABETIC_CIPHER" ||
+                {(encryptionType === "MONO_ALPHABETIC_CIPHER" ||
                   encryptionType === "CUSTOM") && (
                   <p className="algorithm-warning">
-                    Warning: Caesar, Monoalphabetic, and Custom ciphers are not
-                    secure for sensitive data.
+                    Warning: Monoalphabetic, and Custom ciphers are not secure
+                    for sensitive data.
                   </p>
                 )}
               </div>

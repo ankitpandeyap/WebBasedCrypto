@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"; // Added useCallback
+import React, { useEffect, useState, useCallback, useContext } from "react"; // Added useCallback
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
@@ -6,8 +6,18 @@ import "../css/Dashboard.css";
 import Sidebar from "../components/Sidebar";
 import DecryptModal from "../components/DecryptModal";
 import { API_BASE_URL } from "../config/config";
+import { EventSource } from "eventsource";
+import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+  // Get authState from context
+  const { accessToken,loadingAuth} = useContext(AuthContext);
+  const navigate = useNavigate();
+  // Extract accessToken and loadingAuth from authState
+  const token = accessToken; // <-- GET TOKEN FROM AUTHCONTEXT
+  
+
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
@@ -36,11 +46,40 @@ export default function Dashboard() {
   }, []); // No dependencies for initial fetch
 
   useEffect(() => {
+    if (loadingAuth) {
+      console.log("Dashboard: Authentication check in progress, waiting...");
+      return; // Don't proceed until auth is loaded
+    }
+
     fetchMessages(); // Fetch messages on component mount
 
     // --- SSE Integration Start ---
+    if (!token) {
+      console.warn(
+        "SSE: No access token available in AuthContext. Cannot establish stream."
+      );
+      toast.error("Session expired or not logged in. Please log in again.");
+      // You might want to redirect to login if token is null here
+      // window.location.href = "/login";
+      navigate("/login");
+      return; // Exit effect if no token after auth check
+    }
 
-    const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`);
+    console.log(
+      "SSE: Attempting to establish connection with token via Authorization header."
+    );
+
+    const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`, {
+      fetch: (input, init) => {
+        return fetch(input, {
+          ...init,
+          headers: {
+            ...init?.headers,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      },
+    });
 
     eventSource.onopen = () => {
       console.log("SSE connection opened.");
@@ -121,7 +160,7 @@ export default function Dashboard() {
       eventSource.close(); // Close the connection when the component unmounts
     };
     // --- SSE Integration End ---
-  }, [fetchMessages]); // Dependency array: Re-run effect if fetchMessages changes (though memoized)
+  }, [fetchMessages,token, loadingAuth]); // Dependency array: Re-run effect if fetchMessages changes (though memoized)
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);

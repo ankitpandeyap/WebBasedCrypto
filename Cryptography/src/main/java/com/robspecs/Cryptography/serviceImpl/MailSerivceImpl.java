@@ -7,8 +7,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import com.robspecs.Cryptography.service.MailService;
 import com.robspecs.Cryptography.exceptions.EmailSendingException; // New import for custom exception
+import com.robspecs.Cryptography.service.MailService;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

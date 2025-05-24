@@ -9,16 +9,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.robspecs.Cryptography.exceptions.EmailSendingException;
+import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException; // In case OTP hashing fails
+import com.robspecs.Cryptography.exceptions.InvalidOtpException;
+import com.robspecs.Cryptography.exceptions.OtpCooldownException;
+import com.robspecs.Cryptography.exceptions.TooManyOtpAttemptsException;
 import com.robspecs.Cryptography.service.MailService;
 import com.robspecs.Cryptography.service.OtpService;
-
-
-
-import com.robspecs.Cryptography.exceptions.OtpCooldownException;
-import com.robspecs.Cryptography.exceptions.EmailSendingException;
-import com.robspecs.Cryptography.exceptions.InvalidOtpException;
-import com.robspecs.Cryptography.exceptions.TooManyOtpAttemptsException;
-import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException; // In case OTP hashing fails
 
 @RestController
 @RequestMapping("/api/auth/otp")

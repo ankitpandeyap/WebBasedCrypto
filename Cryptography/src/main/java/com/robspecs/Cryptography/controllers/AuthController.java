@@ -15,8 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.robspecs.Cryptography.dto.RegistrationDTO;
+import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
 import com.robspecs.Cryptography.exceptions.JWTTokenNotFoundException;
 import com.robspecs.Cryptography.exceptions.TokenNotFoundException;
+//New imports for custom exceptions
+import com.robspecs.Cryptography.exceptions.UserAlreadyExistsException;
 import com.robspecs.Cryptography.service.AuthService;
 import com.robspecs.Cryptography.service.PasskeyCacheService; // Added import for PasskeyCacheService
 import com.robspecs.Cryptography.service.TokenBlacklistService;
@@ -24,10 +27,6 @@ import com.robspecs.Cryptography.service.TokenBlacklistService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-//New imports for custom exceptions
-import com.robspecs.Cryptography.exceptions.UserAlreadyExistsException;
-import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
 
 @RestController
 @RequestMapping("/api/auth")

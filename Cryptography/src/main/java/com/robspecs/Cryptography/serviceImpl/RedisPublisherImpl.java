@@ -11,6 +11,8 @@ import com.robspecs.Cryptography.service.RedisPublisher;
 @Service
 public class RedisPublisherImpl implements RedisPublisher {
 	private final RedisTemplate<String, Object> redisTemplate;
+	private static final String INBOX_PREFIX = "inbox.";
+
 
 	public RedisPublisherImpl(@Qualifier("redisJsonTemplate") RedisTemplate<String, Object> redisTemplate) {
 
@@ -19,7 +21,7 @@ public class RedisPublisherImpl implements RedisPublisher {
 
 	@Override
 	public void publishNewMessage(User receiver, MessageSummaryDTO payload) {
-		String topic = "inbox." + receiver.getUserName();
+		String topic = INBOX_PREFIX + receiver.getUserName();
 		redisTemplate.convertAndSend(topic, payload);
 	}
 

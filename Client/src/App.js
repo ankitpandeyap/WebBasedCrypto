@@ -20,25 +20,25 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-       <Route path="/compose" element={<ComposeMessage />} />
+      {/* <Route path="/dashboard" element={<Dashboard />} />
+       <Route path="/compose" element={<ComposeMessage />} /> */}
      
-      {/* <Route
+      <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
         }
-      /> */}
-      {/* <Route
+      />
+      <Route
         path="/compose"
         element={
           <ProtectedRoute>
             <ComposeMessage />
           </ProtectedRoute>
         }
-      /> */}
+      />
     </Routes>
    {location.pathname === '/login' && <Footer />}
    <ToastContainer position="top-center" autoClose={1000} />

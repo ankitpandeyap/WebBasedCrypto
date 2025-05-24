@@ -29,6 +29,7 @@ public class RedisConfig {
 	public RedisConnectionFactory redisConnectionFactory() {
 		LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory();
 		logger.debug("RedisConnectionFactory bean created using Lettuce: {}", lettuceConnectionFactory);
+		lettuceConnectionFactory.setValidateConnection(true);
 		return lettuceConnectionFactory; // default localhost:6379// will use password
 	}
 
@@ -66,7 +67,9 @@ public class RedisConfig {
 	 * lettuceConnectionFactory.afterPropertiesSet(); // Usually not needed if
 	 * Spring manages the bean lifecycle
 	 * logger.debug("LettuceConnectionFactory bean created for Redis at {}:{}",
-	 * redisHost, redisPort); return lettuceConnectionFactory; }*
+	 * redisHost, redisPort);
+	 * lettuceConnectionFactory.setValidateConnection(true);
+	 * return lettuceConnectionFactory; }*
 	 *
 	 */
 
@@ -118,9 +121,9 @@ public class RedisConfig {
 	public TaskExecutor redisMessageExecutor() {
 		logger.info("Configuring dedicated TaskExecutor 'redisMessageExecutor' for Redis message listeners.");
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(5); // Adjust as needed based on expected message volume and processing time
-		executor.setMaxPoolSize(10); // Adjust as needed
-		executor.setQueueCapacity(25); // Adjust as needed
+		executor.setCorePoolSize(10); // ✅ Increased from 5
+        executor.setMaxPoolSize(20); // ✅ Increased from 10
+        executor.setQueueCapacity(100); // ✅ Increased from 25
 		executor.setThreadNamePrefix("redis-listener-"); // Clear prefix for debugging
 		executor.initialize();
 		logger.debug(

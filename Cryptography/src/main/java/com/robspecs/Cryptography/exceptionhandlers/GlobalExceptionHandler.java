@@ -1,8 +1,9 @@
 
 package com.robspecs.Cryptography.exceptionhandlers;
 
-import com.robspecs.Cryptography.exceptions.*; // Import all your custom exceptions
-import io.jsonwebtoken.JwtException; // For general JWT issues
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -12,8 +13,21 @@ import org.springframework.web.bind.MethodArgumentNotValidException; // For @Val
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.HashMap;
-import java.util.Map;
+// Import all your custom exceptions
+import com.robspecs.Cryptography.exceptions.EmailSendingException;
+import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
+import com.robspecs.Cryptography.exceptions.InvalidOtpException;
+import com.robspecs.Cryptography.exceptions.InvalidPasskeyException;
+import com.robspecs.Cryptography.exceptions.JWTBlackListedTokenException;
+import com.robspecs.Cryptography.exceptions.MissingEncryptionKeyException;
+import com.robspecs.Cryptography.exceptions.NotFoundException;
+import com.robspecs.Cryptography.exceptions.OtpCooldownException;
+import com.robspecs.Cryptography.exceptions.TokenNotFoundException;
+import com.robspecs.Cryptography.exceptions.TooManyOtpAttemptsException;
+import com.robspecs.Cryptography.exceptions.UnauthorizedException;
+import com.robspecs.Cryptography.exceptions.UserAlreadyExistsException;
+
+import io.jsonwebtoken.JwtException; // For general JWT issues
 
 /**
  * Global Exception Handler for the Cryptography application. This class
