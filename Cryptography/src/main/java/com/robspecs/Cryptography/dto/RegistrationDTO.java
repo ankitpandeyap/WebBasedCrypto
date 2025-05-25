@@ -2,75 +2,57 @@ package com.robspecs.Cryptography.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class RegistrationDTO {
 
 	@NotBlank(message = "Name is required")
-	private String name;
+    @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+    private String name;
 
-	@NotBlank(message = "Password is required")
-	private String password;
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
+    // Consider adding a regex for stronger password requirements if desired, e.g.,
+    // @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$",
+    //          message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character")
+    private String password;
 
-	@NotBlank(message = "Role is required")
-	private String role;
+    @NotBlank(message = "Role is required")
+    @Pattern(regexp = "USER|ADMIN", message = "Role must be 'USER' or 'ADMIN'")
+    private String role;
 
-	@Email(message = "Invalid email format")
-	@NotBlank(message = "Email is required")
-	private String email;
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
+    private String email;
 
-	@NotNull(message = "Passkey is required")
-	private String passkey;
+    // Changed from @NotNull to @NotBlank to ensure it's not just non-null, but also not empty.
+    @NotBlank(message = "Passkey is required")
+    @Size(min = 16, message = "Passkey must be at least 16 characters long for sufficient entropy")
+    private String passkey;
 
-	@NotBlank(message = "Username is required")
-	private String userName;
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    // Consider adding a @Pattern for valid characters if desired
+    private String userName;
 
-	public String getUserName() {
-		return userName;
-	}
+    // Getters and Setters (ensure they are present and match your field names)
+    public String getUserName() { return userName; }
+    public void setUserName(String userName) { this.userName = userName; }
 
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-	public String getName() {
-		return name;
-	}
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 
-	public String getPassword() {
-		return password;
-	}
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getRole() {
-		return role;
-	}
-
-	public void setRole(String role) {
-		this.role = role;
-	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
-	public String getPasskey() {
-		return passkey;
-	}
-
-	public void setPasskey(String passkey) {
-		this.passkey = passkey;
-	}
+    public String getPasskey() { return passkey; }
+    public void setPasskey(String passkey) { this.passkey = passkey; }
 
 }

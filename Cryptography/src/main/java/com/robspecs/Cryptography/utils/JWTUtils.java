@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
@@ -19,11 +20,13 @@ import io.jsonwebtoken.security.SignatureException;
 @Component
 public class JWTUtils {
     private final static Logger logger = LoggerFactory.getLogger(JWTUtils.class);
-    private final String SECRET_KEY = "=84167ddacceacc4a4a887f12ae83be81295dad84fa9bb6ee294eee82bfc2";
-    private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+    private final String SECRET_KEY ;
+    private final Key key ;
 
-    public JWTUtils() {
-        logger.debug("JWTUtils initialized with secret key"); //  Log the secret key (VERY IMPORTANT:  Consider masking this in production!)
+    public JWTUtils(@Value("${jwt.secret}") String secretKeyString) { // Constructor injection
+        this. SECRET_KEY = secretKeyString;
+        this.key = Keys.hmacShaKeyFor(this. SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        logger.info("JWTUtils initialized.");
     }
 
     // Generate JWT Token
@@ -36,10 +39,10 @@ public class JWTUtils {
                     .setExpiration(new Date(System.currentTimeMillis() + expiryMinutes * 60 * 1000)) //in milliseconds
                     .signWith(key, SignatureAlgorithm.HS256)
                     .compact();
-            logger.debug("JWT token generated: {}", token);  // Log the generated token
+            logger.info("Successfully generated JWT token for username: {}", username);
             return token;
         } catch (Exception e) {
-            logger.error("Error generating JWT token for user: {}.  Error: {}", username, e.getMessage());
+        	  logger.error("Error generating JWT token for user: {}. Error: {}", username, e.getMessage(), e);
             return null; // Or throw an exception, depending on your error handling policy
         }
     }

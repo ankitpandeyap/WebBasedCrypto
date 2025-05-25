@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 // Import all your custom exceptions
 import com.robspecs.Cryptography.exceptions.EmailSendingException;
 import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
+import com.robspecs.Cryptography.exceptions.InboxRetrievalException;
 import com.robspecs.Cryptography.exceptions.InvalidOtpException;
 import com.robspecs.Cryptography.exceptions.InvalidPasskeyException;
 import com.robspecs.Cryptography.exceptions.JWTBlackListedTokenException;
@@ -205,4 +206,10 @@ public class GlobalExceptionHandler {
 		logger.error("An unexpected error occurred: {}", ex.getMessage(), ex);
 		return new ResponseEntity<>("An unexpected internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
 	}
+	
+	  @ExceptionHandler(InboxRetrievalException.class)
+	    public ResponseEntity<String> handleInboxRetrievalException(InboxRetrievalException ex) {
+	        logger.error("InboxRetrievalException caught: {}", ex.getMessage(), ex);
+	        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	    }
 }

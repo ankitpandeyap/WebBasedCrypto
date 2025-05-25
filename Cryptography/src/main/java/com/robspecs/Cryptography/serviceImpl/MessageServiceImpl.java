@@ -23,6 +23,7 @@ import com.robspecs.Cryptography.Enums.Algorithm;
 import com.robspecs.Cryptography.dto.MessageRequestDTO;
 import com.robspecs.Cryptography.dto.MessageSummaryDTO;
 import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
+import com.robspecs.Cryptography.exceptions.InboxRetrievalException;
 import com.robspecs.Cryptography.exceptions.InvalidPasskeyException;
 import com.robspecs.Cryptography.exceptions.MissingEncryptionKeyException;
 import com.robspecs.Cryptography.exceptions.NotFoundException;
@@ -183,10 +184,13 @@ public class MessageServiceImpl implements MessageService {
 					))
 					.collect(Collectors.toList());
 
-		} catch (Exception ex) {
-			log.error("Error listing inbox for userId={}: {}", receiver.getUserId(), ex.getMessage(), ex);
-			throw new RuntimeException("Could not retrieve inbox messages", ex);
-		}
+		} catch (InboxRetrievalException ex) { 
+            throw ex;
+        } catch (Exception ex) { // Catch any other unexpected exceptions
+            log.error("Failed to retrieve inbox messages for user {}: {}", receiver.getUserName() , ex.getMessage(), ex);
+            // Throw your new custom exception, wrapping the original cause
+            throw new InboxRetrievalException("Failed to retrieve inbox messages for user: " + receiver.getUserName(), ex); 
+        }
 	}
 
 	@Override
@@ -215,7 +219,7 @@ public class MessageServiceImpl implements MessageService {
 		String messageContentEncryptionKey;
 
 		try {
-            if (passkeyCacheService.isValidated(currentUser.getUserName())) {
+            if (passkeyCacheService.isValidated(currentUser.getUsername())) {
                 log.debug("Passkey for user {} is cached as validated. Using stored derived encryption key.", currentUser.getUserName());
                 userEncryptionKey = currentUser.getDerivedUserEncryptionKey();
             } else {
@@ -235,7 +239,7 @@ public class MessageServiceImpl implements MessageService {
                         currentUser.getUserId());
                 userEncryptionKey = derivedKeyFromInput;
 
-                passkeyCacheService.markValidated(currentUser.getUserName());
+                passkeyCacheService.markValidated(currentUser.getUsername());
             }
 
 			DecryptionKey dk = keyRepo.findByMessage_MessageId(messageId).orElseThrow(() -> {

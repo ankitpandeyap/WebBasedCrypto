@@ -37,12 +37,12 @@ public class MailSerivceImpl implements MailService {
 
             String htmlContent = "<html><body>"
                     + "<div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;'>"
-                    + "<h2 style='color: #007bff; text-align: center;'>Your One-Time Password</h2>"
+                    + "<h2 style='color: #007bff; text-align: center;'>Your One-Time Password</h2>" // Improved heading
                     + "<p style='font-size: 16px; line-height: 1.6; text-align: center;'>Please use the following OTP to complete your registration:</p>"
-                    + "<div style='background-color: #e9ecef; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px;'>"
-                    + "<strong style='font-size: 24px; color: #212529;'>" + otp + "</strong>"
+                    + "<div style='background-color: #e9ecef; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px;'>" // Styled OTP box
+                    + "<strong style='font-size: 24px; color: #212529;'>" + otp + "</strong>" // Larger, stronger OTP
                     + "</div>"
-                    + "<p style='font-size: 14px; color: #6c757d; text-align: center;'>This OTP is valid for 5 minutes.</p>"
+                    + "<p style='font-size: 14px; color: #6c757d; text-align: center;'>This OTP is valid for 5 minutes.</p>" // Expiry notice
                     + "<p style='font-size: 14px; color: #6c757d; text-align: center;'>If you did not request this OTP, please ignore this email.</p>"
                     + "</div>"
                     + "</body></html>";

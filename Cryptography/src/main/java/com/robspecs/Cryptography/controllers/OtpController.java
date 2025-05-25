@@ -1,5 +1,8 @@
 package com.robspecs.Cryptography.controllers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -63,26 +66,39 @@ public class OtpController {
         logger.info("Received OTP verification request for email: {}", email);
         logger.debug("Attempting to verify OTP: {} for email: {}", otp, email);
         try {
-            // otpService.validateOtp throws an exception if validation fails,
-            // so the 'else' block for isValid is unreachable.
-            boolean isValid = otpService.validateOtp(email, otp);
-            // If we reach here, it means isValid is true and no exception was thrown.
+            // This call will throw an exception if validation fails
+            otpService.validateOtp(email, otp);
+
+            // If no exception is thrown, it means OTP is valid.
             logger.info("OTP verified successfully for email: {}", email);
-            return ResponseEntity.ok("OTP verified");
+            Map<String, Object> successResponse = new HashMap<>();
+            successResponse.put("verified", true);
+            successResponse.put("message", "OTP verified successfully!"); // Consistent success message
+            return ResponseEntity.ok(successResponse); // Return JSON object
         } catch (InvalidOtpException e) {
             logger.warn("OTP verification failed for email {}: {}", email, e.getMessage());
-            // @ResponseStatus(HttpStatus.BAD_REQUEST) on InvalidOtpException handles status
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>(); // Changed to Object for consistency
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("verified", false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (TooManyOtpAttemptsException e) {
             logger.warn("OTP verification failed for email {}: {}", email, e.getMessage());
-            // @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS) on TooManyOtpAttemptsException handles status
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(e.getMessage());
-        } catch (EncryptionDecryptionException e) { // In case OTP encryption/hashing fails during validation
+            Map<String, Object> errorResponse = new HashMap<>(); // Changed to Object for consistency
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("verified", false);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+        } catch (EncryptionDecryptionException e) {
             logger.error("OTP verification failed for email {} due to encryption error: {}", email, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("OTP verification failed: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>(); // Changed to Object for consistency
+            errorResponse.put("message", "OTP verification failed: " + e.getMessage());
+            errorResponse.put("verified", false);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         } catch (Exception e) { // Catch any other unexpected exceptions
             logger.error("Unexpected error during OTP verification for email {}: {}", email, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("OTP verification failed: An unexpected error occurred.");
+            Map<String, Object> errorResponse = new HashMap<>(); // Changed to Object for consistency
+            errorResponse.put("message", "OTP verification failed: An unexpected error occurred.");
+            errorResponse.put("verified", false);
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 }

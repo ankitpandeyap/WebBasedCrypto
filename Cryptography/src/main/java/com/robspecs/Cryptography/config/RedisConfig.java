@@ -3,10 +3,12 @@ package com.robspecs.Cryptography.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
@@ -25,7 +27,17 @@ import com.robspecs.Cryptography.serviceImpl.RedisSubscriberImpl;
 public class RedisConfig {
 
 	private static final Logger logger = LoggerFactory.getLogger(RedisConfig.class);
+	
+	@Value("${spring.data.redis.host:localhost}") // Default to localhost if not specified
+	private String redisHost;
 
+	@Value("${spring.data.redis.port:6379}") // Default to 6379 if not specified
+	private int redisPort;
+
+	@Value("${spring.data.redis.password:}") // Default to empty string (no password) if not specified
+	private String redisPassword;
+
+	/*
 	@Bean
 	public RedisConnectionFactory redisConnectionFactory() {
 		LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory();
@@ -33,46 +45,32 @@ public class RedisConfig {
 		lettuceConnectionFactory.setValidateConnection(true);
 		return lettuceConnectionFactory; // default localhost:6379// will use password
 	}
+	*/
 
-	/*
-	 * // Inject properties from application.properties/yml
-	 *
-	 * @Value("${spring.data.redis.host:localhost}") // Default to localhost if not
-	 * specified private String redisHost;
-	 *
-	 * @Value("${spring.data.redis.port:6379}") // Default to 6379 if not specified
-	 * private int redisPort;
-	 *
-	 * @Value("${spring.data.redis.password:}") // Default to empty string (no
-	 * password) if not specified private String redisPassword;
-	 *
-	 * @Bean public RedisConnectionFactory redisConnectionFactory() { logger.
-	 * info("Configuring RedisConnectionFactory with host: {}, port: {}, password provided: {}"
-	 * , redisHost, redisPort, !redisPassword.isEmpty()); // Log configuration
-	 * details
-	 *
-	 * // Use RedisStandaloneConfiguration to set host, port, and password
-	 * RedisStandaloneConfiguration redisStandaloneConfiguration = new
-	 * RedisStandaloneConfiguration();
-	 * redisStandaloneConfiguration.setHostName(redisHost);
-	 * redisStandaloneConfiguration.setPort(redisPort);
-	 *
-	 * if (!redisPassword.isEmpty()) {
-	 * redisStandaloneConfiguration.setPassword(redisPassword);
-	 * logger.debug("Redis password set for connection factory."); } else {
-	 * logger.debug("No Redis password configured."); }
-	 *
-	 * LettuceConnectionFactory lettuceConnectionFactory = new
-	 * LettuceConnectionFactory(redisStandaloneConfiguration); // It's good practice
-	 * to call afterPropertiesSet() if not managed by Spring's full lifecycle //
-	 * lettuceConnectionFactory.afterPropertiesSet(); // Usually not needed if
-	 * Spring manages the bean lifecycle
-	 * logger.debug("LettuceConnectionFactory bean created for Redis at {}:{}",
-	 * redisHost, redisPort);
-	 * lettuceConnectionFactory.setValidateConnection(true);
-	 * return lettuceConnectionFactory; }*
-	 *
-	 */
+	@Bean
+	public RedisConnectionFactory redisConnectionFactory() {
+		logger.info("Configuring RedisConnectionFactory with host: {}, port: {}, password provided: {}",
+			redisHost, redisPort, !redisPassword.isEmpty()); // Log configuration details
+
+		// Use RedisStandaloneConfiguration to set host, port, and password
+		RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
+		redisStandaloneConfiguration.setHostName(redisHost);
+		redisStandaloneConfiguration.setPort(redisPort);
+
+		if (!redisPassword.isEmpty()) {
+			redisStandaloneConfiguration.setPassword(redisPassword);
+			logger.debug("Redis password set for connection factory.");
+		} else {
+			logger.debug("No Redis password configured.");
+		}
+
+		LettuceConnectionFactory lettuceConnectionFactory =
+			new LettuceConnectionFactory(redisStandaloneConfiguration);
+
+		logger.debug("LettuceConnectionFactory bean created for Redis at {}:{}", redisHost, redisPort);
+		lettuceConnectionFactory.setValidateConnection(true);
+		return lettuceConnectionFactory;
+	}
 
 	@Bean
 	public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {

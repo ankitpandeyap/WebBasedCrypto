@@ -6,8 +6,7 @@ import Header from "../components/Header";
 import "../css/Dashboard.css";
 import Sidebar from "../components/Sidebar";
 import DecryptModal from "../components/DecryptModal";
-// REMOVE: import { EventSource } from "eventsource"; // SSE is now managed globally
-// REMOVE: import { API_BASE_URL } from "../config/config"; // SSE is now managed globally
+
 import { AuthContext } from "../context/AuthContext";
 import { SseContext } from "../context/SseContext"; // Import SseContext to consume messages
 import { useNavigate } from "react-router-dom";

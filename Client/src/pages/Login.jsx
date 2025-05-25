@@ -48,52 +48,57 @@ export default function Login() {
       if (token) {
         login(token); // store in localStorage + update auth state
         toast.success("Login successful!");
-        navigate("/dashboard"); // ✅ Now this should work
+        navigate("/dashboard");
       } else {
         toast.error("Login failed: No token received");
       }
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Invalid username or password"
-      );
+    }  catch (error) {
+      // NEW: Improved error handling for validation messages from backend filter
+      if (error.response && error.response.data && typeof error.response.data === 'object' && error.response.data.error) {
+         // Backend filter returns {"error": "field: message, field2: message2"}
+         toast.error(error.response.data.error);
+      } else {
+         // Fallback for other errors (e.g., 401 Unauthorized, 500 Internal Server Error)
+         toast.error(error.response?.data || "Invalid username or password");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   // Step 6: JSX UI
-  return (
+ return (
     <>
       <Header />
-      <div className="min-h-screen flex justify-center items-center bg-gray-100">
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <h2 className="text-2xl mb-4 font-bold text-center">Login</h2>
+      <div className="login-page-container"> {/* Outer container for full-page layout */}
+        <div className="login-container"> {/* Inner container for the card-like form */}
+          <form onSubmit={handleLoginSubmit} className="login-form">
+            <h2 className="login-title">Login</h2>
 
-          <input
-            type="text"
-            value={usernameOrEmail}
-            onChange={(e) =>setUsernameOrEmail(e.target.value)}
-            placeholder="Username Or Email"
-            required
-            className="w-full border p-2 mb-4 rounded"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-            className="w-full border p-2 mb-4 rounded"
-          />
-          {loading ? (
-            <LoadingSpinner />
-          ) : (
-            <button type="submit" className="btn">
-              Login
-            </button>
-          )}
-        </form>
-      </div>
+            <input
+              type="text"
+              value={usernameOrEmail}
+              onChange={(e) => setUsernameOrEmail(e.target.value)}
+              placeholder="Username Or Email"
+              required
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+            />
+            {loading ? (
+              <LoadingSpinner />
+            ) : (
+              <button type="submit" className="login-button">
+                Login
+              </button>
+            )}
+          </form>
+        </div> {/* End of login-container */}
+      </div> {/* End of login-page-container */}
     </>
   );
 }

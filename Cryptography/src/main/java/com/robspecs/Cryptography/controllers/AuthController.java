@@ -1,5 +1,8 @@
 package com.robspecs.Cryptography.controllers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,10 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.robspecs.Cryptography.dto.RegistrationDTO;
@@ -27,6 +34,7 @@ import com.robspecs.Cryptography.service.TokenBlacklistService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -49,7 +57,7 @@ public class AuthController {
  }
 
  @PostMapping({ "/register", "/signup" })
- public ResponseEntity<?> signup(@RequestBody RegistrationDTO currDTO) {
+ public ResponseEntity<?> signup(@Valid  @RequestBody RegistrationDTO currDTO) {
      logger.info("Received signup request for email: {}", currDTO.getEmail());
      String verifiedFlagKey = currDTO.getEmail() + ":verified";
      String otpVerified = redisTemplate.opsForValue().get(verifiedFlagKey);
@@ -174,4 +182,18 @@ public class AuthController {
      logger.warn("Authorization header with Bearer token is missing.");
      throw new TokenNotFoundException("Authorization header with Bearer token is missing.");
  }
+ 
+ @ResponseStatus(HttpStatus.BAD_REQUEST)
+ @ExceptionHandler(MethodArgumentNotValidException.class)
+ public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+     Map<String, String> errors = new HashMap<>();
+     ex.getBindingResult().getAllErrors().forEach((error) -> {
+         String fieldName = ((FieldError) error).getField();
+         String errorMessage = error.getDefaultMessage();
+         errors.put(fieldName, errorMessage);
+     });
+     logger.warn("Validation errors in AuthController: {}", errors);
+     return errors;
+ }
+ 
 }

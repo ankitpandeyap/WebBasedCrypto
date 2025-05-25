@@ -67,6 +67,7 @@ export default function Register() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [showPasskey, setShowPasskey] = useState(false);
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -104,14 +105,22 @@ export default function Register() {
           email
         )}&otp=${encodeURIComponent(otp)}`
       );
-      toast.success(res.data);
-      if (res.data.trim() === "OTP verified") {
+
+      if (res.data && res.data.verified === true) {
         setOtpVerified(true);
         setStep(3);
+        toast.success(res.data.message || "OTP verified successfully!");
+      } else {
+        toast.error(
+          res.data?.message || "OTP verification failed. Please try again."
+        );
       }
     } catch (err) {
       // The backend now sends the specific error message, e.g., "Invalid OTP." or "Too many failed attempts."
-      toast.error(err.response?.data || "OTP verification failed");
+      toast.error(
+        err.response?.data?.message ||
+          "OTP verification failed: An unexpected error occurred."
+      );
     } finally {
       setVerifyingOtp(false); // Stop loading
     }
@@ -142,22 +151,30 @@ export default function Register() {
       toast.success(res.data); // Backend sends "User registered successfully!"
       navigate("/login");
     } catch (err) {
-      // Backend sends specific error messages from AuthController, e.g., "Email has not been verified..."
-      // or "Email already registered!"
-      toast.error(err.response?.data || "Registration failed");
+      // NEW: Improved error handling for validation messages from backend
+      if (
+        err.response &&
+        err.response.status === 400 &&
+        typeof err.response.data === "object"
+      ) {
+        // Backend returns a map of validation errors (e.g., {"email": "Invalid email format"})
+        const errors = err.response.data;
+        Object.keys(errors).forEach((field) => {
+          toast.error(`${field}: ${errors[field]}`);
+        });
+      } else {
+        // Handle other errors (e.g., OTP verification expired, user already exists)
+        toast.error(err.response?.data || "Registration failed");
+      }
     } finally {
-      setRegistering(false); // Stop loading for registration
+      setRegistering(false);
     }
   };
 
   return (
     <div className="register-container">
       <div className="register-card">
-        {" "}
-        {/* MINOR: Clarified use of .register-card */}
         <h2 className="register-title">
-          {" "}
-          {/* MINOR: Clarified use of .register-title */}
           {step === 1 && "Step 1: Send OTP"}
           {step === 2 && "Step 2: Verify OTP"}
           {step === 3 && "Step 3: Complete Registration"}
@@ -170,6 +187,9 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              // F3 (Issue) - Email Validation
+              pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+              title="Please enter a valid email address (e.g., user@example.com)"
             />
             {sendingOtp ? (
               <LoadingSpinner className="button-spinner" />
@@ -187,11 +207,16 @@ export default function Register() {
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="register-form">
             <input
-              type="text"
+              type="text" // Keep as text, OTPs don't need to be masked
               placeholder="Enter OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               required
+              // F3 (Issue) - OTP might need length validation, e.g., 6 digits
+              minlength="6" // Assuming OTP is 6 digits
+              maxlength="6" // Assuming OTP is 6 digits
+              pattern="\d{6}" // Ensures only 6 digits are entered
+              title="Please enter the 6-digit OTP"
             />
             {verifyingOtp ? (
               <LoadingSpinner className="button-spinner" />
@@ -214,6 +239,9 @@ export default function Register() {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               required
+              minlength="3"
+              maxlength="20"
+              title="Username must be between 3 and 20 characters."
             />
             <input
               type="text"
@@ -221,6 +249,9 @@ export default function Register() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              minlength="2"
+              maxlength="50"
+              title="Full Name must be between 2 and 50 characters."
             />
             <input
               type="password"
@@ -228,14 +259,29 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minlength="8"
+              // Optional: Add a pattern for stronger passwords if needed (e.g., from DTO's commented pattern)
+              // pattern="^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$"
+              // title="Password must be at least 8 characters, including at least one digit, one lowercase, one uppercase, and one special character."
             />
-           <input
-              type="text" 
-              placeholder="Passkey (secret phrase for encryption) Minimum 16 Characters" // Updated placeholder
-              value={passkey}
-              onChange={(e) => setPasskey(e.target.value)}
-              required
-            />
+            <div className="passkey-input-container">
+              <input
+                type={showPasskey ? "text" : "password"}
+                placeholder="Passkey (secret phrase for encryption) Minimum 16 Characters"
+                value={passkey}
+                onChange={(e) => setPasskey(e.target.value)}
+                required
+                minlength="16"
+                title="Passkey must be at least 16 characters long."
+              />
+              <button
+                type="button"
+                className="passkey-toggle-btn"
+                onClick={() => setShowPasskey(!showPasskey)}
+              >
+                {showPasskey ? "Hide" : "Show"}
+              </button>
+            </div>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}

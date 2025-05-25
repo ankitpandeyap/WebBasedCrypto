@@ -1,12 +1,4 @@
 /* src/index.css */
-:root {
-  --primary-color: #2f80ed;
-  --secondary-color: #56ccf2;
-  --bg-color: #f7f9fc;
-  --text-color: #333;
-  --border-radius: 8px;
-  --font-family: 'Segoe UI', sans-serif;
-}
 
 body {
   margin: 0;
