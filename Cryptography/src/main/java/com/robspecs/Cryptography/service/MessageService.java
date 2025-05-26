@@ -11,4 +11,8 @@ public interface MessageService {
     public List<MessageSummaryDTO> getInboxMessages(User receiver);
     String decryptMessage(Long messageId, User currentUser, String passkey) throws Exception;
     public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception;
+    List<MessageSummaryDTO> getSentMessages(User sender);
+    public void markMessageAsRead(Long messageId, String currentUsername);
+    void toggleMessageStarred(Long messageId, String currentUsername);
+    void deleteMessage(Long messageId, String currentUsername);
 }

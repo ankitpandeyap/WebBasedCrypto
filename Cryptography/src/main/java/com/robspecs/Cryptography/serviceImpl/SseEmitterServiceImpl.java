@@ -15,7 +15,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.fasterxml.jackson.core.JsonProcessingException; // Specific import
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.robspecs.Cryptography.dto.MessageSummaryDTO; // Import your DTO
 import com.robspecs.Cryptography.service.SseEmitterService;
 
 import jakarta.annotation.PostConstruct;

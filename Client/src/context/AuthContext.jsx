@@ -12,13 +12,19 @@ export const AuthProvider = ({ children }) => {
 
 
 const updateToken = useCallback((newToken) => {
+  if (newToken) {
     localStorage.setItem("accessToken", newToken);
     setAccessToken(newToken);
     setIsAuthenticated(true);
-    axiosInstance.defaults.headers.common[
-      "Authorization"
-    ] = `Bearer ${newToken}`;
-  }, []); // Empty dependency array means this function is stable
+    axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+  } else {
+    // Handle null token correctly
+    localStorage.removeItem("accessToken"); // Use removeItem
+    setAccessToken(null);
+    setIsAuthenticated(false); // Set to false
+    delete axiosInstance.defaults.headers.common["Authorization"]; // Delete header
+  }
+}, []);
 
   // Set the updateToken function in the axiosInstance
   useEffect(() => {

@@ -17,7 +17,7 @@ public class PasskeyCacheServiceImpl implements PasskeyCacheService {
 	private final RedisTemplate<String, String> redisTemplate;
 
 	public PasskeyCacheServiceImpl(RedisTemplate<String, String> redisTemplate) {
-	
+
 		this.redisTemplate = redisTemplate;
 		log.info("PasskeyCacheServiceImpl initialized with RedisTemplate.");
 	}

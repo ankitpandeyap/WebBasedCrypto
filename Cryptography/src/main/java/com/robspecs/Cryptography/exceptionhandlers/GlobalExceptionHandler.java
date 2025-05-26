@@ -206,7 +206,7 @@ public class GlobalExceptionHandler {
 		logger.error("An unexpected error occurred: {}", ex.getMessage(), ex);
 		return new ResponseEntity<>("An unexpected internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
 	}
-	
+
 	  @ExceptionHandler(InboxRetrievalException.class)
 	    public ResponseEntity<String> handleInboxRetrievalException(InboxRetrievalException ex) {
 	        logger.error("InboxRetrievalException caught: {}", ex.getMessage(), ex);

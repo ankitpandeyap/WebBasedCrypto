@@ -33,7 +33,7 @@
   justify-content: space-between;
   padding: 14px 18px;
   border-radius: 12px;
-  background-color: #fefefe;
+  /* background-color: #fefefe; */ /* Base background handled by read/unread classes */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: background-color 0.3s ease;
 }
@@ -49,16 +49,6 @@
   gap: 10px;
 }
 
-.message-checkbox {
-  cursor: pointer;
-  transform: scale(1.1);
-}
-
-.message-star {
-  font-size: 18px;
-  color: #ffca28;
-  cursor: pointer;
-}
 
 /* Middle: sender, subject, type */
 .message-content-main {
@@ -134,4 +124,84 @@
   font-size: 16px;
   color: #888;
   margin-top: 50px;
+}
+.messages-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 25px;
+  text-align: left; /* Align title to left within the content area */
+}
+
+/* Styles for Read and Unread Messages */
+.message-item.message-unread {
+    background-color: #e0f2f7; /* Light blue background for unread messages */
+    font-weight: 600; /* Make unread messages a bit bolder */
+    border-left: 5px solid #007bff; /* A prominent left border for unread */
+    padding-left: 13px; /* Adjust padding due to border */
+}
+
+.message-item.message-read {
+    /* UPDATED: Subtle grey background for read messages */
+    background-color: #f8f8f8; /* A very light grey */
+    /* UPDATED: Slightly darker grey for text to make it faded */
+    color: #999; /* A medium grey for overall text */
+    font-weight: normal; /* Normal font weight for read messages */
+    border-left: 5px solid transparent; /* Keep consistent spacing */
+    padding-left: 18px; /* Adjust padding back to original */
+}
+
+/* Ensure hover styles still apply */
+.message-item.message-unread:hover {
+    background-color: #d1eff7; /* Slightly darker hover for unread */
+}
+
+.message-item.message-read:hover {
+    background-color: #f0f4ff; /* Existing hover for read, or adjust to match new grey tone if preferred, e.g., #f3f3f3 */
+}
+
+/* Style for read message content to look "read" */
+.message-item.message-read .message-sender,
+.message-item.message-read .message-subject,
+.message-item.message-read .message-encryption-type {
+    color: #a0a0a0; /* A slightly darker grey to make inner text faded */
+}
+
+/* .message-checkbox is removed from Dashboard.jsx, so its styles are now effectively unused unless needed elsewhere. */
+
+/*
+.message-checkbox {
+  cursor: pointer;
+  transform: scale(1.1);
+}
+*/
+
+/* This part is already correct as it only impacts the star icon, which is still present */
+.message-star {
+  /* Set the default color for the SVG stroke (hollow) */
+  color: #a0a0a0; /* A soft grey for the hollow star */
+  cursor: pointer;
+  display: flex; /* Ensures the SVG is centered if needed */
+  align-items: center;
+  justify-content: center;
+  /* Add a transition for SVG color changes */
+  transition: color 0.2s ease;
+}
+
+/* Style for the filled star (when isStarred is true) */
+.message-star svg[fill="currentColor"] {
+  fill: #ffca28; /* Yellow/gold for the filled star */
+  stroke: none; /* Ensure no stroke for filled star */
+}
+
+/* Style for the hollow star (when isStarred is false) */
+.message-star svg[fill="none"] {
+  fill: none;
+  stroke: #a0a0a0; /* Consistent grey for the hollow star outline */
+}
+
+/* Increase hit area slightly for easier clicking */
+.message-star {
+  padding: 5px;
+  margin: -5px; /* Offset padding to keep spacing */
 }

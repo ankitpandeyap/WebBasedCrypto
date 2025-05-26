@@ -145,3 +145,8 @@
     background-color: #004085; /* Even darker blue on hover for active compose */
   }
 }
+.sidebar-button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}

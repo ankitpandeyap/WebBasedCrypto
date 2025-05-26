@@ -150,6 +150,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"An unexpected error occurred during login. Please try again later.\"}");
 		}
-		logger.info("Exiting JWTAuthenticationFilter for request URI: {}", request.getRequestURI()); 
+		logger.info("Exiting JWTAuthenticationFilter for request URI: {}", request.getRequestURI());
 	}
 }

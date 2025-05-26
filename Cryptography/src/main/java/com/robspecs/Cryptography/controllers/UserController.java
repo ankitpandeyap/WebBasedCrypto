@@ -2,6 +2,7 @@ package com.robspecs.Cryptography.controllers;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.robspecs.Cryptography.Entities.User;
 import com.robspecs.Cryptography.dto.UserDTO;
+import com.robspecs.Cryptography.dto.UserProfileDTO;
 import com.robspecs.Cryptography.service.UserService;
 
 @RestController
@@ -28,5 +30,17 @@ public class UserController {
 		List<UserDTO> users = userService.getAllUsers(currentUser);
 		return ResponseEntity.ok(users);
 	}
+
+	 @GetMapping("/me")
+	    public ResponseEntity<UserProfileDTO> getUserProfile(@AuthenticationPrincipal User currentUser) {
+	        if (currentUser == null) {
+	           // log.warn("Attempted to fetch user profile but no authenticated user found. This should be caught by Spring Security.");
+	            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+	        }
+
+	     //   log.info("Fetching profile for authenticated user: {}", currentUser.getUserName());
+	        UserProfileDTO userProfile = userService.getUserProfile(currentUser.getUserName());
+	        return ResponseEntity.ok(userProfile);
+	    }
 
 }

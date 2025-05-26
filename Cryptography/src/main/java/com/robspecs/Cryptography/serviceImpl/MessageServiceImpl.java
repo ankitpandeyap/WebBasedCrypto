@@ -54,8 +54,8 @@ public class MessageServiceImpl implements MessageService {
 	private final PasswordEncoder passwordEncoder;
 	private final PasskeyCacheService passkeyCacheService;
 
-    @Value("${security.pbkdf2.iterations:65536}")
-    private int pbkdf2Iterations;
+	@Value("${security.pbkdf2.iterations:65536}")
+	private int pbkdf2Iterations;
 
 	public MessageServiceImpl(UserRepository userRepo, MessageRepository messageRepo, DecryptionKeyRepository keyRepo,
 			EncryptionFactory factory, KeyGenerator keyGen, RedisPublisher redisPublisher,
@@ -73,7 +73,9 @@ public class MessageServiceImpl implements MessageService {
 
 	@Override
 	@Transactional
-	public void sendMessage(MessageRequestDTO req, String senderUsername) throws Exception { // Keep throws Exception for now, will refine in controller
+	public void sendMessage(MessageRequestDTO req, String senderUsername) throws Exception { // Keep throws Exception
+																								// for now, will refine
+																								// in controller
 		log.info("Attempting to send message from senderUsername: {} to receiverUsername: {} with algorithm: {}",
 				senderUsername, req.getToUsername(), req.getAlgorithm());
 
@@ -110,7 +112,8 @@ public class MessageServiceImpl implements MessageService {
 			log.debug("Raw message content successfully encrypted using algorithm: {}", algo);
 		} catch (Exception e) {
 			log.error("Error encrypting raw message content with algorithm {}: {}", algo, e.getMessage(), e);
-			throw new EncryptionDecryptionException("Failed to encrypt message content.", e); // Changed to EncryptionDecryptionException
+			throw new EncryptionDecryptionException("Failed to encrypt message content.", e); // Changed to
+																								// EncryptionDecryptionException
 		}
 
 		Message msg = new Message();
@@ -119,8 +122,9 @@ public class MessageServiceImpl implements MessageService {
 		msg.setEncryptedContent(encryptedContent);
 		msg.setEncryptionType(algo.name());
 		msg.setTimestamp(LocalDateTime.now());
-		messageRepo.save(msg);
-		log.info("Encrypted message persisted for sender: {} to receiver: {}. Message ID: {}", sender.getUserName(),
+		msg.setRead(false);
+		msg.setStarred(false);
+		messageRepo.save(msg);		log.info("Encrypted message persisted for sender: {} to receiver: {}. Message ID: {}", sender.getUserName(),
 				receiver.getUserName(), msg.getMessageId());
 
 		String receiverDerivedUserAesKeyBase64 = receiver.getDerivedUserEncryptionKey();
@@ -134,7 +138,8 @@ public class MessageServiceImpl implements MessageService {
 		} catch (Exception e) {
 			log.error("Error encrypting message content key for receiver {}: {}", receiver.getUserName(),
 					e.getMessage(), e);
-			throw new EncryptionDecryptionException("Failed to secure message key for receiver.", e); // Changed to EncryptionDecryptionException
+			throw new EncryptionDecryptionException("Failed to secure message key for receiver.", e); // Changed to
+																										// EncryptionDecryptionException
 		}
 
 		DecryptionKey dk = new DecryptionKey();
@@ -146,24 +151,18 @@ public class MessageServiceImpl implements MessageService {
 		log.info("Message sending process completed successfully for message ID: {}", msg.getMessageId());
 
 		try {
-		    MessageSummaryDTO summary = new MessageSummaryDTO(
-		            msg.getMessageId(),
-		            sender.getEmail(), // This is still the sender's email/username
-		            msg.getEncryptedContent(),
-		            msg.getEncryptionType(),
-		            msg.getTimestamp(),
-		            receiver.getUserName() // <-- PASS THE RECEIVER'S USERNAME HERE
-		        );
+			MessageSummaryDTO summary = new MessageSummaryDTO(msg.getMessageId(), sender.getUserName(),
+					msg.getEncryptedContent(), msg.getEncryptionType(), msg.getTimestamp(), receiver.getUserName(),
+					msg.isRead(), // Include isRead
+					msg.isStarred() // --- NEW: Include isStarred status for Redis ---
+			);
 
-		    log.info("About to call redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName()); // <--- ADD THIS
-		    redisPublisher.publishNewMessage(receiver, summary);
-		    log.info("Successfully called redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName()); // <--- ADD THIS
+			log.info("About to call redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName());
+			redisPublisher.publishNewMessage(receiver, summary);
+			log.info("Successfully called redisPublisher.publishNewMessage for receiver: {}", receiver.getUserName());
 			log.debug("Published new-message event to Redis for {}", receiver.getUserName());
 		} catch (Exception e) {
 			log.error("Failed to publish Redis event for Message[{}]: {}", msg.getMessageId(), e.getMessage(), e);
-			// It's generally okay to swallow Redis publishing errors if real-time notifications are not critical
-			// or if a fallback mechanism (like polling the inbox) is in place.
-			// If real-time is critical, you might rethrow or implement a retry mechanism.
 		}
 	}
 
@@ -172,89 +171,112 @@ public class MessageServiceImpl implements MessageService {
 		try {
 			log.info("Listing inbox for userId={}", receiver.getUserId());
 			List<Message> messages = messageRepo.findByReceiverOrderByTimestampDesc(receiver);
+			return messages.stream().map(m -> new MessageSummaryDTO(m.getMessageId(), m.getSender().getUserName(),
+					m.getEncryptedContent(), m.getEncryptionType(), m.getTimestamp(), receiver.getUserName(),
+					m.isRead(),
+					m.isStarred()
+			)).collect(Collectors.toList());
 
-			return messages
-					.stream().map(m -> new MessageSummaryDTO(
-							m.getMessageId(),
-							m.getSender().getUserName(), // Sender's username
-							m.getEncryptedContent(),
-							m.getEncryptionType(),
-							m.getTimestamp(),
-							receiver.getUserName() // <--- ADD THIS: The receiver's username for *this* inbox
-					))
-					.collect(Collectors.toList());
 
-		} catch (InboxRetrievalException ex) { 
-            throw ex;
-        } catch (Exception ex) { // Catch any other unexpected exceptions
-            log.error("Failed to retrieve inbox messages for user {}: {}", receiver.getUserName() , ex.getMessage(), ex);
-            // Throw your new custom exception, wrapping the original cause
-            throw new InboxRetrievalException("Failed to retrieve inbox messages for user: " + receiver.getUserName(), ex); 
-        }
+		} catch (InboxRetrievalException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			log.error("Failed to retrieve inbox messages for user {}: {}", receiver.getUserName(), ex.getMessage(), ex);
+			throw new InboxRetrievalException("Failed to retrieve inbox messages for user: " + receiver.getUserName(),
+					ex);
+		}
+	}
+	@Override
+	public List<MessageSummaryDTO> getSentMessages(User sender) {
+		try {
+			log.info("Listing sent messages for userId={}", sender.getUserId());
+			List<Message> messages = messageRepo.findBySenderOrderByTimestampDesc(sender);
+
+			return messages.stream().map(m -> new MessageSummaryDTO(m.getMessageId(), sender.getUserName(),
+					m.getEncryptedContent(), m.getEncryptionType(), m.getTimestamp(), m.getReceiver().getUserName(),
+					m.isRead(), // Include isRead
+					m.isStarred()
+			)).collect(Collectors.toList());
+		} catch (Exception ex) {
+			log.error("Failed to retrieve sent messages for user {}: {}", sender.getUserName(), ex.getMessage(), ex);
+			throw new InboxRetrievalException("Failed to retrieve sent messages for user: " + sender.getUserName(), ex);
+		}
 	}
 
 	@Override
 	@Transactional
-	public String decryptMessage(Long messageId, User currentUser, String passkey) throws Exception { // Keep throws Exception for now, will refine in controller
+	public String decryptMessage(Long messageId, User currentUser, String passkey) throws Exception {
+
 		log.info("Attempting to decrypt messageId={} for userId={}", messageId, currentUser.getUserId());
 
 		Message msg = messageRepo.findById(messageId).orElseThrow(() -> {
 			log.warn("Message not found: id={}", messageId);
 			return new NotFoundException("Message not found"); // Changed to NotFoundException
 		});
-		if (!msg.getReceiver().getUserId().equals(currentUser.getUserId())) {
-			log.warn("Access denied: userId={} is not receiver of messageId={}", currentUser.getUserId(), messageId);
-			// Changed to UnauthorizedException, which now maps to 403 Forbidden
-			throw new UnauthorizedException("Access denied: You are not the receiver of this message.");
+		if (!msg.getReceiver().getUserId().equals(currentUser.getUserId())
+				&& !msg.getSender().getUserId().equals(currentUser.getUserId())) {
+			log.warn("Access denied: userId={} is neither receiver nor sender of messageId={}", currentUser.getUserId(),
+					messageId);
+			throw new UnauthorizedException("Access denied: You are not authorized to decrypt this message.");
 		}
-
 		if (currentUser.getPasskeySalt() == null || currentUser.getPasskeySalt().isEmpty()
 				|| currentUser.getDerivedUserEncryptionKey() == null
 				|| currentUser.getDerivedUserEncryptionKey().isEmpty()) {
 			log.error("User {} is missing encryption key components (salt or derived key).", currentUser.getUserName());
-			throw new MissingEncryptionKeyException("Your account is not fully set up for decryption. Please contact support."); // Changed to MissingEncryptionKeyException
+			throw new MissingEncryptionKeyException(
+					"Your account is not fully set up for decryption. Please contact support."); // Changed to
+																									// MissingEncryptionKeyException
 		}
 
 		String userEncryptionKey;
 		String messageContentEncryptionKey;
 
 		try {
-            if (passkeyCacheService.isValidated(currentUser.getUsername())) {
-                log.debug("Passkey for user {} is cached as validated. Using stored derived encryption key.", currentUser.getUserName());
-                userEncryptionKey = currentUser.getDerivedUserEncryptionKey();
-            } else {
-                log.debug("Passkey for user {} is NOT cached as validated. Performing PBKDF2 derivation.", currentUser.getUserName());
-                byte[] passkeySaltBytes = Base64.getDecoder().decode(currentUser.getPasskeySalt());
-                SecretKeyFactory factoryPBKDF2 = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-                KeySpec spec = new PBEKeySpec(passkey.toCharArray(), passkeySaltBytes, pbkdf2Iterations, 256);
-                SecretKey secret = factoryPBKDF2.generateSecret(spec);
-                String derivedKeyFromInput = Base64.getEncoder().encodeToString(secret.getEncoded());
+			if (passkeyCacheService.isValidated(currentUser.getUsername())) {
+				log.debug("Passkey for user {} is cached as validated. Using stored derived encryption key.",
+						currentUser.getUserName());
+				userEncryptionKey = currentUser.getDerivedUserEncryptionKey();
+			} else {
+				log.debug("Passkey for user {} is NOT cached as validated. Performing PBKDF2 derivation.",
+						currentUser.getUserName());
+				byte[] passkeySaltBytes = Base64.getDecoder().decode(currentUser.getPasskeySalt());
+				SecretKeyFactory factoryPBKDF2 = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+				KeySpec spec = new PBEKeySpec(passkey.toCharArray(), passkeySaltBytes, pbkdf2Iterations, 256);
+				SecretKey secret = factoryPBKDF2.generateSecret(spec);
+				String derivedKeyFromInput = Base64.getEncoder().encodeToString(secret.getEncoded());
 
-                if (!derivedKeyFromInput.equals(currentUser.getDerivedUserEncryptionKey())) {
-                    log.warn("Provided passkey for userId={} does not match the stored derived encryption key. Invalid passkey.",
-                            currentUser.getUserId());
-                    throw new InvalidPasskeyException("Invalid passkey provided. Please try again."); // Changed to InvalidPasskeyException
-                }
-                log.debug("Provided passkey verified against stored derived encryption key for userId={}. Marking as validated.",
-                        currentUser.getUserId());
-                userEncryptionKey = derivedKeyFromInput;
+				if (!derivedKeyFromInput.equals(currentUser.getDerivedUserEncryptionKey())) {
+					log.warn(
+							"Provided passkey for userId={} does not match the stored derived encryption key. Invalid passkey.",
+							currentUser.getUserId());
+					throw new InvalidPasskeyException("Invalid passkey provided. Please try again."); // Changed to
+																										// InvalidPasskeyException
+				}
+				log.debug(
+						"Provided passkey verified against stored derived encryption key for userId={}. Marking as validated.",
+						currentUser.getUserId());
+				userEncryptionKey = derivedKeyFromInput;
 
-                passkeyCacheService.markValidated(currentUser.getUsername());
-            }
+				passkeyCacheService.markValidated(currentUser.getUsername());
+			}
 
 			DecryptionKey dk = keyRepo.findByMessage_MessageId(messageId).orElseThrow(() -> {
 				log.error("DecryptionKey not found for messageId={}", messageId);
-				return new NotFoundException("Decryption key not found for this message."); // Changed to NotFoundException
+				return new NotFoundException("Decryption key not found for this message."); // Changed to
+																							// NotFoundException
 			});
 
 			EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
 			messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), userEncryptionKey);
 			log.debug("Message content encryption key successfully decrypted for messageId={}", messageId);
 
-		} catch (Exception e) { // Catching generic Exception here is still broad, but it will wrap specific crypto errors
+		} catch (Exception e) { // Catching generic Exception here is still broad, but it will wrap specific
+								// crypto errors
 			log.warn("Failed to decrypt message key for messageId={} using provided passkey. Error: {}", messageId,
 					e.getMessage(), e);
-			throw new EncryptionDecryptionException("Could not decrypt the message key. Please check your passkey.", e); // Changed to EncryptionDecryptionException
+			throw new EncryptionDecryptionException("Could not decrypt the message key. Please check your passkey.", e); // Changed
+																															// to
+																															// EncryptionDecryptionException
 		}
 
 		String plainText;
@@ -263,18 +285,30 @@ public class MessageServiceImpl implements MessageService {
 			plainText = contentService.decrypt(msg.getEncryptedContent(), messageContentEncryptionKey);
 			log.info("Message content decrypted successfully for messageId={}", messageId);
 			return plainText;
-		} catch (Exception e) { // Catching generic Exception here is still broad, but it will wrap specific crypto errors
+		} catch (Exception e) { // Catching generic Exception here is still broad, but it will wrap specific
+								// crypto errors
 			log.error("Failed to decrypt message content for messageId={}: {}", messageId, e.getMessage(), e);
-			throw new EncryptionDecryptionException("Could not decrypt the message content. Data might be corrupted.", e); // Changed to EncryptionDecryptionException
+			throw new EncryptionDecryptionException("Could not decrypt the message content. Data might be corrupted.",
+					e); // Changed to EncryptionDecryptionException
 		}
 	}
 
 	@Override
 	@Transactional
-	public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception { // Keep throws Exception for now, will refine in controller
+	public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception { // Keep
+																												// throws
+																												// Exception
+																												// for
+																												// now,
+																												// will
+																												// refine
+																												// in
+																												// controller
 		log.info("Verifying passkey for user={} on message={}", currentUser.getUserName(), messageId);
 
-		Message msg = messageRepo.findById(messageId).orElseThrow(() -> new NotFoundException("Message not found")); // Changed to NotFoundException
+		Message msg = messageRepo.findById(messageId).orElseThrow(() -> new NotFoundException("Message not found")); // Changed
+																														// to
+																														// NotFoundException
 		if (!msg.getReceiver().getUserId().equals(currentUser.getUserId())) {
 			log.warn("Access denied: user={} is not receiver of msg={}", currentUser.getUserName(), messageId);
 			// Changed to UnauthorizedException, which now maps to 403 Forbidden
@@ -286,7 +320,8 @@ public class MessageServiceImpl implements MessageService {
 				|| currentUser.getDerivedUserEncryptionKey().isEmpty()) {
 			log.error("User {} is missing encryption key components (salt or derived key) for verification.",
 					currentUser.getUserName());
-			throw new MissingEncryptionKeyException("Your account is not fully set up for decryption."); // Changed to MissingEncryptionKeyException
+			throw new MissingEncryptionKeyException("Your account is not fully set up for decryption."); // Changed to
+																											// MissingEncryptionKeyException
 		}
 
 		String messageContentEncryptionKey;
@@ -301,13 +336,16 @@ public class MessageServiceImpl implements MessageService {
 				log.warn(
 						"Provided passkey for userId={} does not match the stored derived encryption key during verification.",
 						currentUser.getUserId());
-				throw new InvalidPasskeyException("Invalid passkey provided. Please try again."); // Changed to InvalidPasskeyException
+				throw new InvalidPasskeyException("Invalid passkey provided. Please try again."); // Changed to
+																									// InvalidPasskeyException
 			}
 			log.debug("Provided passkey verified against stored derived encryption key for userId={}",
 					currentUser.getUserId());
 
 			DecryptionKey dk = keyRepo.findByMessage_MessageId(messageId)
-					.orElseThrow(() -> new NotFoundException("Decryption key not found for this message.")); // Changed to NotFoundException
+					.orElseThrow(() -> new NotFoundException("Decryption key not found for this message.")); // Changed
+																												// to
+																												// NotFoundException
 
 			EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
 			messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), derivedUserKeyFromInputPasskey);
@@ -317,11 +355,81 @@ public class MessageServiceImpl implements MessageService {
 		} catch (Exception e) {
 			log.warn("Passkey verification failed for msgId={} for user {}. Error: {}", messageId,
 					currentUser.getUserName(), e.getMessage(), e);
-			throw new EncryptionDecryptionException("Passkey verification failed.", e); // Changed to EncryptionDecryptionException
+			throw new EncryptionDecryptionException("Passkey verification failed.", e); // Changed to
+																						// EncryptionDecryptionException
 		}
 
 		passkeyCacheService.markValidated(currentUser.getUserName());
 		log.info("Passkey verified and message content key retrieved for msg={}", messageId);
 		return messageContentEncryptionKey;
+	}
+
+	@Override
+    @Transactional
+    public void markMessageAsRead(Long messageId, String currentUsername) {
+        User currentUser = userRepo.findByEmailOrUserName(currentUsername) // Using userRepo.findByUserName as per your code
+                .orElseThrow(() -> new NotFoundException("User not found: " + currentUsername));
+
+        // Validate that the message exists and belongs to the current user (as receiver)
+        // Using findByMessageIdAndReceiver as per your updated MessageRepository
+        messageRepo.findByMessageIdAndReceiver(messageId, currentUser)
+                .orElseThrow(() -> new UnauthorizedException("You are not authorized to mark this message as read, or message not found."));
+
+        // Call the repository method to update the status
+        messageRepo.updateIsReadStatus(messageId, currentUser, true);
+        log.info("Message ID: {} marked as read by user: {}", messageId, currentUsername);
+    }
+
+	@Override
+	@Transactional
+	public void toggleMessageStarred(Long messageId, String currentUsername) {
+		User currentUser = userRepo.findByEmailOrUserName(currentUsername)
+				.orElseThrow(() -> new NotFoundException("User not found: " + currentUsername));
+
+		// Find the message by its ID.
+		// We'll then check if the current user is either the sender or receiver.
+		Message message = messageRepo.findById(messageId)
+				.orElseThrow(() -> new NotFoundException("Message not found with ID: " + messageId));
+
+		// Authorization: User must be either the sender or the receiver to star/unstar
+		// it.
+		if (!message.getSender().getUserId().equals(currentUser.getUserId())
+				&& !message.getReceiver().getUserId().equals(currentUser.getUserId())) {
+			log.warn("Access denied: User {} is neither sender nor receiver of message ID {}", currentUsername,
+					messageId);
+			throw new UnauthorizedException("You are not authorized to star/unstar this message.");
+		}
+
+		// Toggle the starred status
+		boolean newStarredStatus = !message.isStarred();
+		messageRepo.updateIsStarredStatus(messageId, currentUser, newStarredStatus);
+		log.info("Message ID: {} starred status toggled to {} by user: {}", messageId, newStarredStatus,
+				currentUsername);
+	}
+
+	@Override
+	@Transactional
+	public void deleteMessage(Long messageId, String currentUsername) {
+		User currentUser = userRepo.findByEmailOrUserName(currentUsername)
+				.orElseThrow(() -> new NotFoundException("User not found: " + currentUsername));
+
+		// Find the message by its ID to perform authorization check
+		Message message = messageRepo.findById(messageId)
+				.orElseThrow(() -> new NotFoundException("Message not found with ID: " + messageId));
+
+		// Authorization: User must be either the sender or the receiver to delete it.
+		if (!message.getSender().getUserId().equals(currentUser.getUserId())
+				&& !message.getReceiver().getUserId().equals(currentUser.getUserId())) {
+			log.warn("Access denied: User {} is neither sender nor receiver of message ID {}", currentUsername,
+					messageId);
+			throw new UnauthorizedException("You are not authorized to delete this message.");
+		}
+
+		// --- PERFORM HARD DELETE ---
+		// This will delete the message row from the database permanently.
+		// It's crucial that `CascadeType.ALL` is correctly set on `Message` entity's
+		// `decryptionKey` field to also delete the associated decryption key.
+		messageRepo.deleteMessageByIdAndUser(messageId, currentUser);
+		log.info("Message ID: {} hard deleted by user: {}", messageId, currentUsername);
 	}
 }

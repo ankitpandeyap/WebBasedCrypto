@@ -18,12 +18,12 @@ export const setAuthUpdateToken = (callback) => {
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
-    if (token) {
+    // Check for token and that it's not the literal string "null"
+    if (token && token !== 'null') {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   }
-  
 );
 
 // Define paths where automatic redirect to /login should be suppressed

@@ -3,7 +3,10 @@ import axiosInstance from "../api/axiosInstance";
 import { toast } from "react-toastify";
 import "../css/DecryptModal.css";
 
-export default function DecryptModal({ message, onClose }) {
+// Removed any CryptoJS import or frontend decryption helpers (decryptCaesar, decryptMonoalphabetic)
+// as decryption will now always happen on the backend.
+
+export default function DecryptModal({ message, onClose, isSentView ,  onDecryptSuccess}) { // UPDATED: Receive 'isSentView' prop
   const [passkey, setPasskey] = useState("");
   const [decryptedContent, setDecryptedContent] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +31,9 @@ export default function DecryptModal({ message, onClose }) {
     setDecryptedContent(null);
 
     try {
+      // All decryption logic is handled by the backend's /messages/{messageId}/decrypt endpoint.
+      // This endpoint will use the provided passkey to decrypt the message content key,
+      // and then decrypt the message content itself based on its encryption type.
       const { data } = await axiosInstance.post(
         `/messages/${message.messageId}/decrypt`,
         null, // no body payload
@@ -37,10 +43,17 @@ export default function DecryptModal({ message, onClose }) {
       );
       setDecryptedContent(data.decryptedContent);
       toast.success("Message decrypted successfully!");
+     
+     if (onDecryptSuccess && !isSentView) {
+        onDecryptSuccess(message.messageId);
+      }
+
     } catch (err) {
-      const errMsg = err.response?.data || "Failed to decrypt message.";
+      // Improved error message extraction from backend response
+      const errMsg = err.response?.data?.error || err.response?.data || err.message || "Failed to decrypt message.";
       setError(errMsg);
       toast.error(`Decryption failed: ${errMsg}`);
+      console.error("Decryption process error:", err);
     } finally {
       setLoading(false);
     }
@@ -48,7 +61,6 @@ export default function DecryptModal({ message, onClose }) {
 
   return (
     <div className="decrypt-modal-backdrop" onClick={onClose}>
-      {/* Stop modal close on clicking inside modal */}
       <div className="decrypt-modal-content" onClick={(e) => e.stopPropagation()}>
         <button
           aria-label="Close decrypt modal"
@@ -59,9 +71,15 @@ export default function DecryptModal({ message, onClose }) {
         </button>
 
         <h2>Decrypt Message (ID: {message?.messageId || "N/A"})</h2>
-        <p className="decrypt-modal-sender">
-          From: {message?.senderUsername || "Unknown"}
-        </p>
+        {isSentView ? (
+          <p className="decrypt-modal-sender">
+            To: {message?.receiverUsername || "Unknown"}
+          </p>
+        ) : (
+          <p className="decrypt-modal-sender">
+            From: {message?.senderUsername || "Unknown"}
+          </p>
+        )}
 
         {decryptedContent ? (
           <>

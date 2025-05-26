@@ -103,13 +103,8 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 			response.setContentType("application/json");
 			response.getWriter().write("{\"message\": \"Access token refreshed successfully\"}");
 			logger.info("New Access Token sent in Authorization header for user: {}.", userDetails.getUsername());
-
-			// *** HIGHLIGHTED CHANGE START ***
-			// This filter now RESPONDS directly to the refresh request.
-			// It does NOT call filterChain.doFilter(request, response) to pass the request
-			// further.
-			return;
-			// *** HIGHLIGHTED CHANGE END ***
+            return;
+			
 
 		} catch (ExpiredJwtException e) {
 			logger.warn("Explicit refresh token expired for user: {}. Message: {}", e.getClaims().getSubject(),

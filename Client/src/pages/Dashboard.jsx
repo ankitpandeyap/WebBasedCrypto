@@ -126,14 +126,65 @@ export default function Dashboard() {
     setSelectedMessage(null);
   };
 
-  return (
+
+ const handleMarkAsReadAfterDecryption = async (messageId) => {
+    try {
+
+      await axiosInstance.patch(`/messages/${messageId}/read`, {
+        isRead: true, // Explicitly set to true
+      });
+
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.messageId === messageId ? { ...msg, isRead: true } : msg
+        )
+      );
+      toast.success("Message marked as read.");
+    } catch (error) {
+      console.error("Failed to mark message as read after decryption:", error);
+      toast.error("Failed to mark message as read automatically.");
+    }
+  };
+
+  const handleMarkAsStarred = async (messageId, currentIsStarredStatus) => {
+    const newIsStarredStatus = !currentIsStarredStatus; // Toggle the status
+    try {
+      await axiosInstance.patch(`/messages/${messageId}/star`, {
+        isStarred: newIsStarredStatus,
+      });
+
+      // Optimistically update UI
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.messageId === messageId ? { ...msg, isStarred: newIsStarredStatus } : msg
+        )
+      );
+      toast.success(
+        `Message ${newIsStarredStatus ? "marked as important" : "unmarked as important"}.`
+      );
+    } catch (error) {
+      console.error("Failed to update starred status:", error);
+      toast.error(
+        "Failed to update starred status: " +
+          (error.response?.data?.message || error.message)
+      );
+      // Revert UI if API call fails
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.messageId === messageId ? { ...msg, isStarred: currentIsStarredStatus } : msg
+        )
+      );
+    }
+  };
+
+
+   return (
     <>
       <Header />
       <div className="main-dashboard-layout">
         <Sidebar />
         <div className="inbox-content-area">
-          {/* Conditional rendering for loading, no messages, or message list */}
-          {loadingMessages && messages.length === 0 ? ( // Show loading only if no messages are present yet
+          {loadingMessages && messages.length === 0 ? (
             <div className="loading-wrapper">
               <p className="loading-text">Loading messages...</p>
             </div>
@@ -142,11 +193,46 @@ export default function Dashboard() {
           ) : (
             <div className="message-list">
               {messages.map((message) => (
-                <div key={message.messageId} className="message-item">
+                <div
+                  key={message.messageId}
+                  className={`message-item ${
+                    message.isRead ? "message-read" : "message-unread"
+                  }`}
+                >
                   <div className="message-actions-left">
-                    <input type="checkbox" className="message-checkbox" />
-                    <span className="message-star" title="Mark as important">
-                      ⭐
+                    {/* CONDITIONAL RENDERING OF STAR SVG */}
+                    <span
+                      className="message-star" // No 'starred' class needed here, color controlled by SVG fill
+                      title="Mark as important"
+                      onClick={() => handleMarkAsStarred(message.messageId, message.isStarred)}
+                    >
+                      {message.isStarred ? (
+                        // Filled star SVG
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor" // This will be #ffca28 from CSS
+                          width="24px"
+                          height="24px"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.25l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z" />
+                        </svg>
+                      ) : (
+                        // Hollow star SVG
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none" // No fill for hollow
+                          stroke="currentColor" // This will be #ccc from CSS
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          width="24px"
+                          height="24px"
+                        >
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.18 12 17.25 5.82 21.18 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      )}
                     </span>
                   </div>
 
@@ -180,9 +266,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Decrypt Modal component */}
       {isDecryptModalOpen && selectedMessage && (
-        <DecryptModal message={selectedMessage} onClose={closeDecryptModal} />
+        <DecryptModal
+          message={selectedMessage}
+          onClose={closeDecryptModal}
+          isSentView={false}
+          onDecryptSuccess={handleMarkAsReadAfterDecryption}
+        />
       )}
     </>
   );

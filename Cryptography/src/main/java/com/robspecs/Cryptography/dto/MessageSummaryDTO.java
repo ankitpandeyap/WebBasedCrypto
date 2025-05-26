@@ -8,20 +8,24 @@ public class MessageSummaryDTO {
 	private String encryptedContent;
 	private String encryptionType;
 	private LocalDateTime timestamp;
-	private String receiverUsername; // <-- ADD THIS NEW FIELD
+	private String receiverUsername;
+    private boolean isRead;
+    private boolean isStarred;
 
 	public MessageSummaryDTO(Long messageId, String senderUsername, String encryptedContent, String encryptionType,
-			LocalDateTime timestamp, String receiverUsername) { // <-- ADD receiverUsername to constructor
+			LocalDateTime timestamp, String receiverUsername, boolean isRead, boolean isStarred) { // --- ADD isStarred to constructor ---
 		this.messageId = messageId;
 		this.senderUsername = senderUsername;
 		this.encryptedContent = encryptedContent;
 		this.encryptionType = encryptionType;
 		this.timestamp = timestamp;
-		this.receiverUsername = receiverUsername; // <-- INITIALIZE NEW FIELD
+		this.receiverUsername = receiverUsername;
+        this.isRead = isRead;
+        this.isStarred = isStarred; // --- INITIALIZE NEW FIELD ---
 	}
 
 	 public MessageSummaryDTO() { }
-	
+
 	public Long getMessageId() {
 		return messageId;
 	}
@@ -42,9 +46,18 @@ public class MessageSummaryDTO {
 		return timestamp;
 	}
 
-	public String getReceiverUsername() { // <-- ADD NEW GETTER
+	public String getReceiverUsername() {
 		return receiverUsername;
 	}
+
+    public boolean isRead() {
+        return isRead;
+    }
+
+    // --- NEW GETTER AND SETTER FOR isStarred ---
+    public boolean isStarred() {
+        return isStarred;
+    }
 
 	public void setMessageId(Long messageId) {
 		this.messageId = messageId;
@@ -69,7 +82,12 @@ public class MessageSummaryDTO {
 	public void setReceiverUsername(String receiverUsername) {
 		this.receiverUsername = receiverUsername;
 	}
-	
-	
-	
+
+    public void setRead(boolean isRead) {
+        this.isRead = isRead;
+    }
+
+    public void setStarred(boolean isStarred) {
+        this.isStarred = isStarred;
+    }
 }

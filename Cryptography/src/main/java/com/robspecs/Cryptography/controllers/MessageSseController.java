@@ -39,7 +39,7 @@ public class MessageSseController {
 
         return emitter;
     }
-	
+
 	   @ExceptionHandler(IOException.class)
 	    public ResponseEntity<String> handleIOException(IOException ex) {
 	        log.error("IOException during SSE stream creation for user: {}", ex.getMessage());

@@ -1,8 +1,10 @@
 package com.robspecs.Cryptography.Entities;
 
+import java.time.LocalDateTime;
 import java.util.Collection; // New import
 import java.util.Collections; // New import (for authorities)
 
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority; // New import
 import org.springframework.security.core.authority.SimpleGrantedAuthority; // New import
 import org.springframework.security.core.userdetails.UserDetails; // New import
@@ -51,6 +53,10 @@ public class User implements UserDetails { // <-- Implement UserDetails here!
 
 	@Column(nullable = true, columnDefinition = "TEXT") // Stores the Base64 encoded PBKDF2 derived AES key
 	private String derivedUserEncryptionKey; // This key will encrypt/decrypt the message content key
+
+	@CreationTimestamp // Automatically sets the creation timestamp
+	@Column(nullable = false, updatable = false) // Not nullable, not updatable after creation
+	private LocalDateTime createdAt;
 
 	// --- Add Getters and Setters for the new fields ---
 
@@ -164,5 +170,13 @@ public class User implements UserDetails { // <-- Implement UserDetails here!
 
 	public void setPasskeyHash(String passkeyHash) {
 		this.passkeyHash = passkeyHash;
+	}
+
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(LocalDateTime createdAt) {
+		this.createdAt = createdAt;
 	}
 }

@@ -18,29 +18,35 @@ import jakarta.persistence.Table;
 @Table(name = "messages")
 public class Message {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long messageId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long messageId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id", nullable = false)
-    private User sender;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "sender_id", nullable = false)
+	private User sender;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiver_id", nullable = false)
-    private User receiver;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "receiver_id", nullable = false)
+	private User receiver;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String encryptedContent;  // actual message (AES/RSA encrypted)
+	@Column(nullable = false, columnDefinition = "TEXT")
+	private String encryptedContent; // actual message (AES/RSA encrypted)
 
-    @OneToOne(mappedBy = "message", cascade = CascadeType.ALL)
-    private DecryptionKey decryptionKey; // One-to-one mapping
+	@OneToOne(mappedBy = "message", cascade = CascadeType.ALL)
+	private DecryptionKey decryptionKey; // One-to-one mapping
 
-    @Column(nullable = false)
-    private String encryptionType; // e.g. AES, RSA, CUSTOM
+	@Column(nullable = false)
+	private String encryptionType; // e.g. AES, RSA, CUSTOM
 
-    @Column(nullable = false)
-    private LocalDateTime timestamp = LocalDateTime.now();
+	@Column(nullable = false)
+	private LocalDateTime timestamp = LocalDateTime.now();
+
+	@Column(nullable = false)
+	private boolean isRead = false;
+
+	@Column(nullable = false)
+	private boolean isStarred = false;
 
 	public Long getMessageId() {
 		return messageId;
@@ -98,5 +104,20 @@ public class Message {
 		this.timestamp = timestamp;
 	}
 
+	public boolean isRead() {
+		return isRead;
+	}
+
+	public void setRead(boolean isRead) {
+		this.isRead = isRead;
+	}
+
+	public boolean isStarred() {
+		return isStarred;
+	}
+
+	public void setStarred(boolean isStarred) {
+		this.isStarred = isStarred;
+	}
 
 }

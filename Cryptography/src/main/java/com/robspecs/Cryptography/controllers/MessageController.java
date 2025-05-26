@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -165,4 +167,92 @@ public class MessageController {
 					.body("Passkey verification failed: An unexpected error occurred.");
 		}
 	}
+
+
+
+		@GetMapping("/sent")
+		public ResponseEntity<List<MessageSummaryDTO>> getSentMessages(@AuthenticationPrincipal User currentUser) {
+			logger.info("Received sent messages request for user: {}", currentUser.getUserName());
+			try {
+				List<MessageSummaryDTO> messages = messageService.getSentMessages(currentUser);
+				logger.info("Retrieved {} sent messages for user: {}", messages.size(), currentUser.getUserName());
+				return ResponseEntity.ok(messages);
+			} catch (Exception e) {
+				logger.error("Failed to retrieve sent messages for user {}: {}", currentUser.getUserName(), e.getMessage(), e);
+				// Reuse internalServerError for now, GlobalExceptionHandler will give better details
+				return ResponseEntity.internalServerError().body(null);
+			}
+		}
+
+		@PatchMapping("/{messageId}/read")
+	    public ResponseEntity<String> markMessageAsRead(@PathVariable Long messageId,
+	                                                    @AuthenticationPrincipal User currentUser) {
+	        logger.info("Received mark as read request for message ID: {} by user: {}", messageId, currentUser.getUserName());
+	        try {
+	            messageService.markMessageAsRead(messageId, currentUser.getUserName());
+	            logger.info("Message ID: {} marked as read successfully for user: {}", messageId, currentUser.getUserName());
+	            return ResponseEntity.ok("Message marked as read successfully!");
+	        } catch (NotFoundException e) {
+	            logger.warn("Mark as read failed for message ID: {} (user: {}) - Not found: {}", messageId, currentUser.getUserName(), e.getMessage());
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+	        } catch (UnauthorizedException e) {
+	            logger.warn("Mark as read failed for message ID: {} (user: {}) - Unauthorized: {}", messageId, currentUser.getUserName(), e.getMessage());
+	            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+	        } catch (Exception e) {
+	            logger.error("Unexpected error during mark as read for message ID: {} for user {}: {}", messageId, currentUser.getUserName(), e.getMessage(), e);
+	            return ResponseEntity.internalServerError().body("Failed to mark message as read: An unexpected error occurred.");
+	        }
+	    }
+
+		@PatchMapping("/{messageId}/star")
+		public ResponseEntity<String> toggleMessageStarred(@PathVariable Long messageId,
+				@AuthenticationPrincipal User currentUser) {
+			logger.info("Received toggle star request for message ID: {} by user: {}", messageId,
+					currentUser.getUserName());
+			try {
+				messageService.toggleMessageStarred(messageId, currentUser.getUserName());
+				logger.info("Message ID: {} starred status toggled successfully for user: {}", messageId,
+						currentUser.getUserName());
+				return ResponseEntity.ok("Message starred status toggled successfully!");
+			} catch (NotFoundException e) {
+				logger.warn("Toggle star failed for message ID: {} (user: {}) - Not found: {}", messageId,
+						currentUser.getUserName(), e.getMessage());
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+			} catch (UnauthorizedException e) {
+				logger.warn("Toggle star failed for message ID: {} (user: {}) - Unauthorized: {}", messageId,
+						currentUser.getUserName(), e.getMessage());
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+			} catch (Exception e) {
+				logger.error("Unexpected error during toggle star for message ID: {} for user {}: {}", messageId,
+						currentUser.getUserName(), e.getMessage(), e);
+				return ResponseEntity.internalServerError()
+						.body("Failed to toggle message star status: An unexpected error occurred.");
+			}
+		}
+
+		@DeleteMapping("/{messageId}")
+		public ResponseEntity<String> deleteMessage(@PathVariable Long messageId,
+				@AuthenticationPrincipal User currentUser) {
+			logger.info("Received delete request for message ID: {} by user: {}", messageId, currentUser.getUserName());
+			try {
+				messageService.deleteMessage(messageId, currentUser.getUserName());
+				logger.info("Message ID: {} hard deleted successfully by user: {}", messageId,
+						currentUser.getUserName());
+				return ResponseEntity.ok("Message deleted successfully!");
+			} catch (NotFoundException e) {
+				logger.warn("Delete message failed for message ID: {} (user: {}) - Not found: {}", messageId,
+						currentUser.getUserName(), e.getMessage());
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+			} catch (UnauthorizedException e) {
+				logger.warn("Delete message failed for message ID: {} (user: {}) - Unauthorized: {}", messageId,
+						currentUser.getUserName(), e.getMessage());
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+			} catch (Exception e) {
+				logger.error("Unexpected error during delete message ID: {} for user {}: {}", messageId,
+						currentUser.getUserName(), e.getMessage(), e);
+				return ResponseEntity.internalServerError()
+						.body("Failed to delete message: An unexpected error occurred.");
+			}
+		}
+
 }

@@ -4,16 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.robspecs.Cryptography.dto.MessageSummaryDTO;
 import com.robspecs.Cryptography.service.SseEmitterService;
-
-import jakarta.annotation.PostConstruct;
 
 @Service
 public class RedisSubscriberImpl {
@@ -40,8 +35,8 @@ public class RedisSubscriberImpl {
 			// No more manual deserialization or extracting from raw 'Message' object.
 			// The `messageSummary` object is already your DTO!
 
-		
-			
+
+
 			if (messageSummary == null) {
 				log.warn("Received null MessageSummaryDTO from Redis. Skipping event processing.");
 				return;
