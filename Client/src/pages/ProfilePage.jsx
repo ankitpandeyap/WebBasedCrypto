@@ -123,7 +123,7 @@ export default function ProfilePage() {
             <div className="main-layout">
                 <Sidebar />
                 <div className="profile-content-area">
-                    <h2 className="profile-title">User Profile</h2>
+                  
                     <div className="profile-details">
                         <div className="profile-item">
                             <span className="profile-label">Username:</span>

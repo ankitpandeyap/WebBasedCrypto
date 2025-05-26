@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
 import "../css/Header.css";
@@ -14,7 +14,8 @@ export default function Header() {
   let pageTitle = "";
   if (pathname === "/dashboard") pageTitle = "Your Inbox";
   else if (pathname === "/compose") pageTitle = "Compose Message";
-
+  else if (pathname === "/sent") pageTitle = "Sent Messages";
+  else if (pathname === "/profile")  pageTitle = "Your Profile";
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout");

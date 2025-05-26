@@ -91,7 +91,7 @@ export default function SentMessages() {
             <div className="main-dashboard-layout">
                 <Sidebar />
                 <div className="inbox-content-area">
-                    <h1 className="messages-section-title">Sent Messages</h1>
+                  
                     {loadingMessages && messages.length === 0 ? (
                         <div className="loading-wrapper">
                             <p className="loading-text">Loading sent messages...</p>

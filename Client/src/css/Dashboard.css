@@ -158,7 +158,7 @@
 }
 
 .message-item.message-read {
-    background-color: #f8f8f8;
+    background-color: #e5d7d777;
     color: #999;
     font-weight: normal;
     border-left: 5px solid transparent;
