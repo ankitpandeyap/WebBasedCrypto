@@ -1,207 +1,290 @@
 /* General Layout */
 .main-dashboard-layout {
-  display: flex;
-  height: 100vh;
-  background-color: #f3f4f6;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    height: 100vh;
+    background-color: #f3f4f6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* Inbox Content */
 .inbox-content-area {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background-color: white;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05); /* Your existing shadow */
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: white;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05); /* Your existing shadow */
 
-  /* Add these for the 'floating card' look */
-  margin: 20px; /* Space around the content area */
-  border-radius: 12px; /* Rounded corners for the card */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* A more prominent shadow for the card */
+    /* Add these for the 'floating card' look */
+    margin: 20px; /* Space around the content area */
+    border-radius: 12px; /* Rounded corners for the card */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* A more prominent shadow for the card */
 }
 
 /* Message List */
 .message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .message-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-radius: 12px;
-  /* background-color: #fefefe; */ /* Base background handled by read/unread classes */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.3s ease;
 }
 
 .message-item:hover {
-  background-color: #f0f4ff;
+    background-color: #f0f4ff;
 }
 
 /* Left side: checkbox + star */
 .message-actions-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
-
 
 /* Middle: sender, subject, type */
 .message-content-main {
-  flex: 1;
-  margin: 0 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    flex: 1;
+    margin: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .message-sender {
-  font-weight: 600;
-  font-size: 15px;
-  color: #333;
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
 }
 
 .message-subject {
-  color: #444;
-  font-size: 14px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+    color: #444;
+    font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .message-encryption-type {
-  font-size: 12px;
-  color: #666;
+    font-size: 12px;
+    color: #666;
 }
 
 /* Right side: timestamp + button */
 .message-actions-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
 }
 
 .message-timestamp {
-  font-size: 12px;
-  color: #888;
+    font-size: 12px;
+    color: #888;
 }
 
 .decrypt-btn {
-  padding: 6px 14px;
-  background-color: #1e40af;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+    padding: 6px 14px;
+    background-color: #1e40af;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .decrypt-btn:hover {
-  background-color: #1c3ea0;
+    background-color: #1c3ea0;
 }
+
+/* New: Delete button style */
+.delete-btn {
+    padding: 6px 14px;
+    background-color: #dc3545; /* Red color for delete */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 5px; /* Add some space from decrypt button */
+}
+
+.delete-btn:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
 
 /* Loading and Empty State */
 .loading-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
 }
 
 .loading-text {
-  font-size: 16px;
-  color: #555;
+    font-size: 16px;
+    color: #555;
 }
 
 .no-messages-text {
-  text-align: center;
-  font-size: 16px;
-  color: #888;
-  margin-top: 50px;
+    text-align: center;
+    font-size: 16px;
+    color: #888;
+    margin-top: 50px;
 }
 .messages-section-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 25px;
-  text-align: left; /* Align title to left within the content area */
+    font-size: 2rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 25px;
+    text-align: left;
 }
 
 /* Styles for Read and Unread Messages */
 .message-item.message-unread {
-    background-color: #e0f2f7; /* Light blue background for unread messages */
-    font-weight: 600; /* Make unread messages a bit bolder */
-    border-left: 5px solid #007bff; /* A prominent left border for unread */
-    padding-left: 13px; /* Adjust padding due to border */
+    background-color: #e0f2f7;
+    font-weight: 600;
+    border-left: 5px solid #007bff;
+    padding-left: 13px;
 }
 
 .message-item.message-read {
-    /* UPDATED: Subtle grey background for read messages */
-    background-color: #f8f8f8; /* A very light grey */
-    /* UPDATED: Slightly darker grey for text to make it faded */
-    color: #999; /* A medium grey for overall text */
-    font-weight: normal; /* Normal font weight for read messages */
-    border-left: 5px solid transparent; /* Keep consistent spacing */
-    padding-left: 18px; /* Adjust padding back to original */
+    background-color: #f8f8f8;
+    color: #999;
+    font-weight: normal;
+    border-left: 5px solid transparent;
+    padding-left: 18px;
 }
 
-/* Ensure hover styles still apply */
 .message-item.message-unread:hover {
-    background-color: #d1eff7; /* Slightly darker hover for unread */
+    background-color: #d1eff7;
 }
 
 .message-item.message-read:hover {
-    background-color: #f0f4ff; /* Existing hover for read, or adjust to match new grey tone if preferred, e.g., #f3f3f3 */
+    background-color: #f0f4ff;
 }
 
-/* Style for read message content to look "read" */
 .message-item.message-read .message-sender,
 .message-item.message-read .message-subject,
 .message-item.message-read .message-encryption-type {
-    color: #a0a0a0; /* A slightly darker grey to make inner text faded */
+    color: #a0a0a0;
 }
 
-/* .message-checkbox is removed from Dashboard.jsx, so its styles are now effectively unused unless needed elsewhere. */
-
-/*
-.message-checkbox {
-  cursor: pointer;
-  transform: scale(1.1);
-}
-*/
-
-/* This part is already correct as it only impacts the star icon, which is still present */
 .message-star {
-  /* Set the default color for the SVG stroke (hollow) */
-  color: #a0a0a0; /* A soft grey for the hollow star */
-  cursor: pointer;
-  display: flex; /* Ensures the SVG is centered if needed */
-  align-items: center;
-  justify-content: center;
-  /* Add a transition for SVG color changes */
-  transition: color 0.2s ease;
+    color: #a0a0a0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
 }
 
-/* Style for the filled star (when isStarred is true) */
 .message-star svg[fill="currentColor"] {
-  fill: #ffca28; /* Yellow/gold for the filled star */
-  stroke: none; /* Ensure no stroke for filled star */
+    fill: #ffca28;
+    stroke: none;
 }
 
-/* Style for the hollow star (when isStarred is false) */
 .message-star svg[fill="none"] {
-  fill: none;
-  stroke: #a0a0a0; /* Consistent grey for the hollow star outline */
+    fill: none;
+    stroke: #a0a0a0;
 }
 
-/* Increase hit area slightly for easier clicking */
 .message-star {
-  padding: 5px;
-  margin: -5px; /* Offset padding to keep spacing */
+    padding: 5px;
+    margin: -5px;
+}
+
+/* --- New: Delete Confirmation Overlay Styles --- */
+.delete-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent black background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's above other content */
+}
+
+.delete-confirm-modal {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    transform: translateY(-20px); /* Slightly move up for a subtle animation effect */
+    animation: fadeInScale 0.3s ease-out forwards; /* Simple animation */
+}
+
+.delete-confirm-modal h2 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.delete-confirm-modal p {
+    color: #555;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.cancel-delete-btn,
+.confirm-delete-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.cancel-delete-btn {
+    background-color: #6c757d; /* Grey for cancel */
+    color: white;
+}
+
+.cancel-delete-btn:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+.confirm-delete-btn {
+    background-color: #dc3545; /* Red for confirmation */
+    color: white;
+}
+
+.confirm-delete-btn:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+}
+
+/* Optional: Animation for the modal */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }

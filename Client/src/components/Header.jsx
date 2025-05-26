@@ -22,21 +22,21 @@ export default function Header() {
       toast.success("Logged out successfully");
       navigate("/login");
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("Logout failed:", error); // Keeping console.error for critical failures
       toast.error("Logout failed: " + (error.response?.data || "Server error"));
     }
   };
- return (
+  return (
     <header className="header-bar">
       <div className="header-logo">CRYPTO_APP</div>
       <div className="header-title">{pageTitle}</div>
       <nav className="header-nav">
-  {isAuthenticated && pathname !== "/login" && (
-    <button className="header-logout-btn" onClick={handleLogout}>
-      Logout
-    </button>
-  )}
-</nav>
+        {isAuthenticated && pathname !== "/login" && (
+          <button className="header-logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        )}
+      </nav>
     </header>
   );
 }

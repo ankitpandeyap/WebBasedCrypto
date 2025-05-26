@@ -295,15 +295,7 @@ public class MessageServiceImpl implements MessageService {
 
 	@Override
 	@Transactional
-	public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception { // Keep
-																												// throws
-																												// Exception
-																												// for
-																												// now,
-																												// will
-																												// refine
-																												// in
-																												// controller
+	public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception { 
 		log.info("Verifying passkey for user={} on message={}", currentUser.getUserName(), messageId);
 
 		Message msg = messageRepo.findById(messageId).orElseThrow(() -> new NotFoundException("Message not found")); // Changed
@@ -429,7 +421,8 @@ public class MessageServiceImpl implements MessageService {
 		// This will delete the message row from the database permanently.
 		// It's crucial that `CascadeType.ALL` is correctly set on `Message` entity's
 		// `decryptionKey` field to also delete the associated decryption key.
-		messageRepo.deleteMessageByIdAndUser(messageId, currentUser);
+		//messageRepo.deleteMessageByIdAndUser(messageId, currentUser);
+		messageRepo.delete(message);
 		log.info("Message ID: {} hard deleted by user: {}", messageId, currentUsername);
 	}
 }

@@ -33,7 +33,7 @@ public class Message {
 	@Column(nullable = false, columnDefinition = "TEXT")
 	private String encryptedContent; // actual message (AES/RSA encrypted)
 
-	@OneToOne(mappedBy = "message", cascade = CascadeType.ALL)
+	@OneToOne(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
 	private DecryptionKey decryptionKey; // One-to-one mapping
 
 	@Column(nullable = false)

@@ -9,6 +9,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SentMessages from './pages/SentMessages';
 import ComposeMessage from "./pages/ComposeMessage";
+import ProfilePage from "./pages/ProfilePage"; // <--- NEW IMPORT
 
 export default function App() {
   const location = useLocation(); // 🔍 Detect current route
@@ -19,8 +20,6 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        {/* <Route path="/dashboard" element={<Dashboard />} />
-       <Route path="/compose" element={<ComposeMessage />} /> */}
 
         <Route
           path="/dashboard"
@@ -43,6 +42,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SentMessages />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile" // <--- NEW ROUTE PATH
+          element={
+            <ProtectedRoute>
+              <ProfilePage /> {/* <--- Renders your new ProfilePage component */}
             </ProtectedRoute>
           }
         />
