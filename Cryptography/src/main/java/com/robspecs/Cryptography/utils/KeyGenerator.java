@@ -56,13 +56,29 @@ public class KeyGenerator {
     }
 
     private String generateMonoKey() {
-        log.debug("Generating Mono-Alphabetic Cipher key."); // Specific debug for Mono
-        List<Character> chars = IntStream.range(0, 26)
-                .mapToObj(i -> (char)('A' + i)).collect(Collectors.toList());
-        Collections.shuffle(chars, random);
+        log.debug("Generating Mono-Alphabetic Cipher key (full character set).");
+
+        // Define the complete set of characters to be supported by the cipher
+        String UPPERCASE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String LOWERCASE_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+        String NUMBERS = "0123456789";
+        // Including common special characters and whitespace, newline, carriage return
+        String SPECIAL_CHARACTERS = "!@#$%^&*()_-+={}[]|:;\"'<>,.?/ \r\n";
+
+        // Combine all character sets into one list
+        List<Character> allChars = new java.util.ArrayList<>();
+        UPPERCASE_ALPHABET.chars().forEach(c -> allChars.add((char) c));
+        LOWERCASE_ALPHABET.chars().forEach(c -> allChars.add((char) c));
+        NUMBERS.chars().forEach(c -> allChars.add((char) c));
+        SPECIAL_CHARACTERS.chars().forEach(c -> allChars.add((char) c));
+
+        // Shuffle the combined list of characters
+        Collections.shuffle(allChars, random);
+
+        // Build the shuffled string (which is the actual key/cipher alphabet)
         StringBuilder sb = new StringBuilder();
-        chars.forEach(sb::append);
-        // Do NOT log the raw key here.
+        allChars.forEach(sb::append);
+
         return sb.toString();
     }
 

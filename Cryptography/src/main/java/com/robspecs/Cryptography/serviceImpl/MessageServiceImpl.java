@@ -124,7 +124,8 @@ public class MessageServiceImpl implements MessageService {
 		msg.setTimestamp(LocalDateTime.now());
 		msg.setRead(false);
 		msg.setStarred(false);
-		messageRepo.save(msg);		log.info("Encrypted message persisted for sender: {} to receiver: {}. Message ID: {}", sender.getUserName(),
+		messageRepo.save(msg);		
+		log.info("Encrypted message persisted for sender: {} to receiver: {}. Message ID: {}", sender.getUserName(),
 				receiver.getUserName(), msg.getMessageId());
 
 		String receiverDerivedUserAesKeyBase64 = receiver.getDerivedUserEncryptionKey();
