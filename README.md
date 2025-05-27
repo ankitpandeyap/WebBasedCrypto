@@ -40,7 +40,7 @@ A secure full-stack web application for encrypted messaging, built with Spring B
 | Frontend    | React.js, Tailwind CSS      |
 | Routing     | react-router-dom            |
 | Notification| react-toastify              |
-|Real-time    | EventSource Polyfill        |
+|Real-time    | EventSource Polyfill(https://github.com/EventSource/eventsource/tree/main/src)        |
 
 
 
