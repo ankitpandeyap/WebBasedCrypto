@@ -115,7 +115,7 @@ public class MailSerivceImpl implements MailService {
             helper.setSubject("Your Password Has Been Changed Successfully");
             helper.setFrom("no-reply@yourdomain.com"); // IMPORTANT: Replace with your actual sender email
 
-            // --- GENERATE HTML CONTENT DIRECTLY AS A STRING ---
+            
             String htmlContent = "<html><body>"
                     + "<div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;'>"
                     + "<h2 style='background-color: #28a745; color: white; padding: 10px; text-align: center; border-radius: 8px 8px 0 0;'>Password Changed Successfully!</h2>"
@@ -124,15 +124,15 @@ public class MailSerivceImpl implements MailService {
                     + "<p>This is to confirm that your password for your account has been successfully changed.</p>"
                     + "<p>If you did not make this change, please contact our support team immediately.</p>"
                     + "<p>Thank you,</p>"
-                    + "<p>The [Your Application Name] Team</p>"
+                    + "<p>The Crypto-Mail-APP Team</p>"
                     + "</div>"
                     + "<div style='text-align: center; padding: 20px; font-size: 0.8em; color: #777; border-top: 1px solid #eee; margin-top: 20px;'>"
-                    + "<p>&copy; " + java.time.Year.now().getValue() + " [Your Application Name]. All rights reserved.</p>"
+                    + "<p>&copy; " + java.time.Year.now().getValue() + " Crypto-Mail-APP. All rights reserved.</p>"
                     + "<p>This is an automated email, please do not reply.</p>"
                     + "</div>"
                     + "</div>"
                     + "</body></html>";
-            // --- END GENERATING HTML CONTENT ---
+          
 
             helper.setText(htmlContent, true); // true indicates HTML content
 
