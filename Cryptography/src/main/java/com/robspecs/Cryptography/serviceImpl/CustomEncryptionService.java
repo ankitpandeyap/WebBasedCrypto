@@ -20,7 +20,7 @@ public class CustomEncryptionService implements EncryptionService {
         // A simple way to derive shift from passkey: sum of char values modulo a max shift
         int shift = 0;
         for (char c : passkey.toCharArray()) {
-            shift += (int) c;
+            shift += c;
         }
         return (shift % 26) + 1; // Shift between 1 and 26
     }

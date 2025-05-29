@@ -9,7 +9,10 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SentMessages from './pages/SentMessages';
 import ComposeMessage from "./pages/ComposeMessage";
-import ProfilePage from "./pages/ProfilePage"; // <--- NEW IMPORT
+import ProfilePage from "./pages/ProfilePage"; 
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
 
 export default function App() {
   const location = useLocation(); // 🔍 Detect current route
@@ -20,6 +23,11 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+
+         {/* --- NEW ROUTES FOR PASSWORD RESET --- */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* Important: This path must match the one in your backend's application.properties */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route
           path="/dashboard"

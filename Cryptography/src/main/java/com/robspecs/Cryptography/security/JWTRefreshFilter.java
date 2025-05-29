@@ -104,7 +104,7 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
 			response.getWriter().write("{\"message\": \"Access token refreshed successfully\"}");
 			logger.info("New Access Token sent in Authorization header for user: {}.", userDetails.getUsername());
             return;
-			
+
 
 		} catch (ExpiredJwtException e) {
 			logger.warn("Explicit refresh token expired for user: {}. Message: {}", e.getClaims().getSubject(),

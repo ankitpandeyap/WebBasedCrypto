@@ -46,7 +46,8 @@ public class JWTValidationFilter extends OncePerRequestFilter {
 	}
 
 	private static final List<String> PUBLIC_URLS = List.of("/api/auth/login", "/api/auth/refresh", "/api/auth/signup",
-			"/api/auth/register", "/api/auth/otp/verify", "/api/auth/otp/request");
+			"/api/auth/register", "/api/auth/otp/verify", "/api/auth/otp/request", "/api/auth/forgot-password", // <--- ADD THIS LINE
+            "/api/auth/reset-password");
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

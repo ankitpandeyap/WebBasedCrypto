@@ -21,10 +21,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.robspecs.Cryptography.dto.ForgotPasswordRequest;
 import com.robspecs.Cryptography.dto.RegistrationDTO;
+import com.robspecs.Cryptography.dto.ResetPasswordRequest;
 import com.robspecs.Cryptography.exceptions.EncryptionDecryptionException;
-import com.robspecs.Cryptography.exceptions.JWTTokenNotFoundException;
-import com.robspecs.Cryptography.exceptions.TokenNotFoundException;
+import com.robspecs.Cryptography.exceptions.ResourceNotFoundException;
 //New imports for custom exceptions
 import com.robspecs.Cryptography.exceptions.UserAlreadyExistsException;
 import com.robspecs.Cryptography.service.AuthService;
@@ -104,7 +105,7 @@ public class AuthController {
 
 	@PostMapping("/logout")
 	public ResponseEntity<?> logoutUser(HttpServletRequest request, HttpServletResponse response,
-			Authentication authentication) { 
+			Authentication authentication) {
 		logger.info("Received logout request");
 		try {
 			Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -112,8 +113,8 @@ public class AuthController {
 			logger.debug("Processing logout for user: {}", username);
 
 			// --- CHANGED: Use the modified helper methods that return null instead of
-		
-			String[] tokens = getRefreshAndAccessToken(request); 
+
+			String[] tokens = getRefreshAndAccessToken(request);
 			String refreshToken = tokens[0];
 			String accessToken = tokens[1];
 
@@ -204,6 +205,42 @@ public class AuthController {
 		return null; // Return null instead of throwing
 	}
 
+	@PostMapping("/forgot-password") // <--- ADD THIS METHOD
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        logger.info("Received forgot password request for email: {}", request.getEmail());
+        try {
+            authService.processForgotPassword(request.getEmail());
+            // Always return a generic success message for security reasons,
+            // to prevent email enumeration attacks.
+            return ResponseEntity.ok("If a user with that email exists, a password reset link has been sent.");
+        } catch (ResourceNotFoundException e) {
+            logger.warn("Forgot password request for email {} failed: {}. Returning generic success message.", request.getEmail(), e.getMessage());
+            // Still return a generic success message even if user not found, for security.
+            return ResponseEntity.ok("If a user with that email exists, a password reset link has been sent.");
+        } catch (Exception e) {
+            logger.error("Unexpected error during forgot password process for email {}: {}", request.getEmail(), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("An unexpected error occurred. Please try again.");
+        }
+    }
+
+    @PostMapping("/reset-password") // <--- ADD THIS METHOD
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        logger.info("Received reset password request for token (first 10 chars): {}", request.getToken().substring(0, Math.min(request.getToken().length(), 10)) + "...");
+        try {
+            authService.resetPassword(request);
+            return ResponseEntity.ok("Password has been reset successfully.");
+        } catch (IllegalArgumentException e) {
+            logger.warn("Password reset failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            logger.warn("Password reset failed (user not found): {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error during password reset for token (first 10 chars) {}: {}", request.getToken().substring(0, Math.min(request.getToken().length(), 10)) + "...", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("An unexpected error occurred during password reset. Please try again.");
+        }
+    }
+
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -216,4 +253,24 @@ public class AuthController {
 		logger.warn("Validation errors in AuthController: {}", errors);
 		return errors;
 	}
+
+
+
+    @ResponseStatus(HttpStatus.NOT_FOUND) // <--- ADD THIS EXCEPTION HANDLER
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public Map<String, String> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        logger.warn("ResourceNotFoundException handled in AuthController: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return error;
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST) // <--- ADD THIS EXCEPTION HANDLER
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Map<String, String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("IllegalArgumentException handled in AuthController: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return error;
+    }
 }

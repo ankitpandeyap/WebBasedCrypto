@@ -70,8 +70,8 @@ export default function Login() {
  return (
     <>
       <Header />
-      <div className="login-page-container"> {/* Outer container for full-page layout */}
-        <div className="login-container"> {/* Inner container for the card-like form */}
+      <div className="login-page-container">
+        <div className="login-container">
           <form onSubmit={handleLoginSubmit} className="login-form">
             <h2 className="login-title">Login</h2>
 
@@ -96,9 +96,17 @@ export default function Login() {
                 Login
               </button>
             )}
+
+            {/* --- ADD THIS LINK --- */}
+            <div className="text-center mt-2">
+              <a href="/forgot-password" className="text-blue-500 hover:underline text-sm">
+                Forgot Password?
+              </a>
+            </div>
+
           </form>
-        </div> {/* End of login-container */}
-      </div> {/* End of login-page-container */}
+        </div>
+      </div>
     </>
   );
 }

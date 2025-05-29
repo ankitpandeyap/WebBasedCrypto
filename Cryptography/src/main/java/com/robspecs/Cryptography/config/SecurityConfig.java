@@ -82,7 +82,9 @@ public class SecurityConfig {
                             "/api/auth/signup",
                             "/api/auth/register",
                             "/api/auth/otp/verify",
-                            "/api/auth/otp/request"
+                            "/api/auth/otp/request",
+                            "/api/auth/forgot-password", // <--- ADD THIS LINE
+                            "/api/auth/reset-password"
                     ).permitAll();
                     logger.debug("Public URLs configured: /api/auth/login, /api/auth/refresh, /api/auth/signup, /api/auth/register, /api/auth/otp/verify, /api/auth/otp/request are permitted.");
                     auth.anyRequest().authenticated();
