@@ -120,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    @Override // <--- ADD THIS METHOD
+    @Override 
     @Transactional
     public void processForgotPassword(String email) {
         logger.info("Processing forgot password request for email: {}", email);
@@ -139,7 +139,7 @@ public class AuthServiceImpl implements AuthService {
         logger.info("Password reset email sent to {}", email);
     }
 
-    @Override // <--- ADD THIS METHOD
+    @Override 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         logger.info("Processing reset password request for token (first 10 chars): {}", request.getToken().substring(0, Math.min(request.getToken().length(), 10)) + "...");

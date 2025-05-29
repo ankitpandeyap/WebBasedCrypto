@@ -10,7 +10,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.robspecs.Cryptography.exceptions.EmailSendingException; // New import for custom exception
 import com.robspecs.Cryptography.service.MailService;
@@ -24,8 +23,8 @@ public class MailSerivceImpl implements MailService {
     private final JavaMailSender mailSender;
     
     private static final Logger logger = LoggerFactory.getLogger(MailSerivceImpl.class);
-    @Value("${app.frontend.password-reset-url}") // <--- ADD THIS FIELD
-    private String frontendPasswordResetBaseUrl; // <--- ADD THIS FIELD
+    @Value("${app.frontend.password-reset-url}") 
+    private String frontendPasswordResetBaseUrl; 
 
 
 
