@@ -288,3 +288,119 @@
         transform: translateY(0) scale(1);
     }
 }
+
+@media (max-width: 768px) {
+    /* 1. Adjust the main dashboard layout to stack vertically */
+    .main-dashboard-layout {
+        flex-direction: column; /* Stacks header, sidebar, and content */
+        height: auto; /* Allow content to dictate height */
+        min-height: 100vh; /* Ensure it still takes full height if content is short */
+    }
+
+    /* 2. Adjust inbox content area to fill space and prevent cutoff */
+    .inbox-content-area {
+        margin: 10px; /* Reduce margin on mobile */
+        padding: 15px; /* Adjust padding */
+        border-radius: 8px; /* Slightly less rounded corners */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* Lighter shadow */
+        /* This is CRUCIAL: Adjust height based on Header (approx 64px) and Sidebar (approx 70px when horizontal) */
+        /* (100vh - HeaderHeight - SidebarHeight - total vertical margins of inbox-content-area) */
+        min-height: calc(100vh - 64px - 70px - 20px);
+    }
+
+    /* 3. Make individual message items stack vertically */
+    .message-item {
+        flex-direction: column; /* Stack contents: actions-left, content-main, actions-right */
+        align-items: flex-start; /* Align content to the left within the item */
+        padding: 12px 15px; /* Adjust padding for mobile */
+        gap: 8px; /* Reduce gap between sections */
+    }
+
+    .message-actions-left {
+        width: 100%; /* Take full width */
+        justify-content: flex-start; /* Align to the left */
+        margin-bottom: 5px; /* Add space before the main content */
+    }
+
+    .message-content-main {
+        width: 100%; /* Take full width */
+        margin: 0; /* Remove horizontal margin */
+    }
+
+    /* Allow message subject to wrap and remove ellipsis */
+    .message-subject {
+        white-space: normal; /* Allow text to wrap */
+        overflow: visible; /* Prevent ellipsis */
+        text-overflow: unset; /* Remove ellipsis */
+        max-height: 3.5em; /* Limit to approx 3 lines for brevity */
+        line-height: 1.2;
+        font-size: 13px; /* Slightly smaller font */
+    }
+
+    .message-sender {
+        font-size: 14px; /* Slightly smaller font */
+    }
+
+    .message-encryption-type {
+        font-size: 11px; /* Smaller font */
+        margin-top: 5px; /* Space from subject */
+    }
+
+    /* Adjust right actions (timestamp and buttons) for mobile */
+    .message-actions-right {
+        flex-direction: row; /* Put buttons side-by-side */
+        width: 100%; /* Take full width */
+        justify-content: space-between; /* Space out buttons */
+        margin-top: 10px; /* Space after message content */
+    }
+
+    .message-timestamp {
+        flex-grow: 1; /* Allow timestamp to take available space */
+        text-align: left; /* Align timestamp to the left */
+        font-size: 11px; /* Smaller timestamp */
+    }
+
+    .decrypt-btn,
+    .delete-btn {
+        padding: 8px 12px; /* Adjust button padding */
+        font-size: 12px; /* Smaller font for buttons */
+        white-space: nowrap; /* Prevent button text from wrapping */
+        margin-top: 0; /* Remove extra top margin */
+    }
+
+    /* Adjust delete confirmation modal for smaller screens */
+    .delete-confirm-modal {
+        max-width: 90%; /* Allow modal to take more width */
+        padding: 20px; /* Adjust padding */
+    }
+
+    .delete-confirm-modal h2 {
+        font-size: 1.3rem;
+    }
+
+    .delete-confirm-modal p {
+        font-size: 0.9rem;
+    }
+
+    .delete-confirm-actions {
+        flex-direction: column; /* Stack buttons vertically */
+        gap: 10px; /* Space between stacked buttons */
+    }
+
+    .cancel-delete-btn,
+    .confirm-delete-btn {
+        width: 100%; /* Full width buttons */
+    }
+}
+
+/* Optional: Further adjustments for very small phones (e.g., less than 480px) */
+@media (max-width: 480px) {
+    .inbox-content-area {
+        margin: 5px;
+        padding: 10px;
+    }
+
+    .message-item {
+        padding: 10px;
+    }
+}
