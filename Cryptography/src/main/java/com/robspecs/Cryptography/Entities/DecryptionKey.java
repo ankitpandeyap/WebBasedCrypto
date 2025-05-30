@@ -23,6 +23,9 @@ public class DecryptionKey {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String encryptedKey;
+    
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String encryptedKeyForSender; // New field
 
 	public Long getId() {
 		return id;
@@ -47,4 +50,12 @@ public class DecryptionKey {
 	public void setEncryptedKey(String encryptedKey) {
 		this.encryptedKey = encryptedKey;
 	}  // The key encrypted using the receiver's passkey
+	
+	public String getEncryptedKeyForSender() { // Getter for new field
+        return encryptedKeyForSender;
+    }
+
+    public void setEncryptedKeyForSender(String encryptedKeyForSender) { // Setter for new field
+        this.encryptedKeyForSender = encryptedKeyForSender;
+    }
 }

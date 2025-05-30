@@ -98,6 +98,13 @@ public class MessageServiceImpl implements MessageService {
 			throw new MissingEncryptionKeyException( // Changed to MissingEncryptionKeyException
 					"Receiver account is not set up for encrypted messages. Missing encryption key.");
 		}
+		
+		if (sender.getDerivedUserEncryptionKey() == null || sender.getDerivedUserEncryptionKey().isEmpty()) {
+			log.error("Sender {} does not have a derived encryption key. Cannot store key for sender's decryption.",
+					sender.getUserName());
+			throw new MissingEncryptionKeyException(
+					"Sender account is not set up for encrypted messages. Missing encryption key.");
+		}
 
 		Algorithm algo = req.getAlgorithm();
 		log.debug("Generating symmetric message content key for algorithm: {}", algo);
@@ -131,11 +138,18 @@ public class MessageServiceImpl implements MessageService {
 		String receiverDerivedUserAesKeyBase64 = receiver.getDerivedUserEncryptionKey();
 
 		String encryptedMessageKeyForReceiver;
+		String encryptedKeyForSender;
 		try {
 			EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
 			encryptedMessageKeyForReceiver = aesService.encrypt(messageContentEncryptionKey,
 					receiverDerivedUserAesKeyBase64);
 			log.debug("Message content key encrypted using receiver's derived user key.");
+		
+			String senderDerivedUserAesKeyBase64 = sender.getDerivedUserEncryptionKey();
+			encryptedKeyForSender = aesService.encrypt(messageContentEncryptionKey,
+					senderDerivedUserAesKeyBase64);
+			log.debug("Message content key encrypted using sender's derived user key.");
+		
 		} catch (Exception e) {
 			log.error("Error encrypting message content key for receiver {}: {}", receiver.getUserName(),
 					e.getMessage(), e);
@@ -146,6 +160,7 @@ public class MessageServiceImpl implements MessageService {
 		DecryptionKey dk = new DecryptionKey();
 		dk.setMessage(msg);
 		dk.setEncryptedKey(encryptedMessageKeyForReceiver);
+		dk.setEncryptedKeyForSender(encryptedKeyForSender);
 		keyRepo.save(dk);
 		log.info("Encrypted message content key persisted for message ID: {}", msg.getMessageId());
 
@@ -268,8 +283,15 @@ public class MessageServiceImpl implements MessageService {
 			});
 
 			EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
-			messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), userEncryptionKey);
-			log.debug("Message content encryption key successfully decrypted for messageId={}", messageId);
+			if (msg.getReceiver().getUserId().equals(currentUser.getUserId())) {
+				// Current user is the receiver, use the key stored in 'encryptedKey' (which is for the receiver)
+				messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), userEncryptionKey);
+				log.debug("Message content key decrypted using receiver's derived user key for messageId={}", messageId);
+			} else {
+				// Current user must be the sender, use the key stored in 'encryptedKeyForSender'
+				messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKeyForSender(), userEncryptionKey);
+				log.debug("Message content key decrypted using sender's derived user key for messageId={}", messageId);
+			}
 
 		} catch (Exception e) { // Catching generic Exception here is still broad, but it will wrap specific
 								// crypto errors
@@ -297,64 +319,72 @@ public class MessageServiceImpl implements MessageService {
 	@Override
 	@Transactional
 	public String verifyPasskeyAndGetKey(Long messageId, User currentUser, String passkey) throws Exception {
-		log.info("Verifying passkey for user={} on message={}", currentUser.getUserName(), messageId);
+	    log.info("Verifying passkey for user={} on message={}", currentUser.getUserName(), messageId);
 
-		Message msg = messageRepo.findById(messageId).orElseThrow(() -> new NotFoundException("Message not found")); // Changed
-																														// to
-																														// NotFoundException
-		if (!msg.getReceiver().getUserId().equals(currentUser.getUserId())) {
-			log.warn("Access denied: user={} is not receiver of msg={}", currentUser.getUserName(), messageId);
-			// Changed to UnauthorizedException, which now maps to 403 Forbidden
-			throw new UnauthorizedException("Access denied: You are not the receiver of this message.");
-		}
+	    Message msg = messageRepo.findById(messageId).orElseThrow(() -> new NotFoundException("Message not found"));
 
-		if (currentUser.getPasskeySalt() == null || currentUser.getPasskeySalt().isEmpty()
-				|| currentUser.getDerivedUserEncryptionKey() == null
-				|| currentUser.getDerivedUserEncryptionKey().isEmpty()) {
-			log.error("User {} is missing encryption key components (salt or derived key) for verification.",
-					currentUser.getUserName());
-			throw new MissingEncryptionKeyException("Your account is not fully set up for decryption."); // Changed to
-																											// MissingEncryptionKeyException
-		}
+	    
+	    if (!msg.getReceiver().getUserId().equals(currentUser.getUserId())
+	            && !msg.getSender().getUserId().equals(currentUser.getUserId())) {
+	        log.warn("Access denied: userId={} is neither receiver nor sender of msg={}", currentUser.getUserId(), messageId);
+	        throw new UnauthorizedException("Access denied: You are not authorized to verify passkey for this message.");
+	    }
+	 
 
-		String messageContentEncryptionKey;
-		try {
-			byte[] passkeySaltBytes = Base64.getDecoder().decode(currentUser.getPasskeySalt());
-			SecretKeyFactory factoryPBKDF2 = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-			KeySpec spec = new PBEKeySpec(passkey.toCharArray(), passkeySaltBytes, pbkdf2Iterations, 256);
-			SecretKey secret = factoryPBKDF2.generateSecret(spec);
-			String derivedUserKeyFromInputPasskey = Base64.getEncoder().encodeToString(secret.getEncoded());
+	    if (currentUser.getPasskeySalt() == null || currentUser.getPasskeySalt().isEmpty()
+	            || currentUser.getDerivedUserEncryptionKey() == null
+	            || currentUser.getDerivedUserEncryptionKey().isEmpty()) {
+	        log.error("User {} is missing encryption key components (salt or derived key) for verification.",
+	                currentUser.getUserName());
+	        throw new MissingEncryptionKeyException("Your account is not fully set up for decryption.");
+	    }
 
-			if (!derivedUserKeyFromInputPasskey.equals(currentUser.getDerivedUserEncryptionKey())) {
-				log.warn(
-						"Provided passkey for userId={} does not match the stored derived encryption key during verification.",
-						currentUser.getUserId());
-				throw new InvalidPasskeyException("Invalid passkey provided. Please try again."); // Changed to
-																									// InvalidPasskeyException
-			}
-			log.debug("Provided passkey verified against stored derived encryption key for userId={}",
-					currentUser.getUserId());
+	    String messageContentEncryptionKey;
+	    try {
+	        byte[] passkeySaltBytes = Base64.getDecoder().decode(currentUser.getPasskeySalt());
+	        SecretKeyFactory factoryPBKDF2 = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+	        KeySpec spec = new PBEKeySpec(passkey.toCharArray(), passkeySaltBytes, pbkdf2Iterations, 256);
+	        SecretKey secret = factoryPBKDF2.generateSecret(spec);
+	        String derivedUserKeyFromInputPasskey = Base64.getEncoder().encodeToString(secret.getEncoded());
 
-			DecryptionKey dk = keyRepo.findByMessage_MessageId(messageId)
-					.orElseThrow(() -> new NotFoundException("Decryption key not found for this message.")); // Changed
-																												// to
-																												// NotFoundException
+	        if (!derivedUserKeyFromInputPasskey.equals(currentUser.getDerivedUserEncryptionKey())) {
+	            log.warn(
+	                    "Provided passkey for userId={} does not match the stored derived encryption key during verification.",
+	                    currentUser.getUserId());
+	            throw new InvalidPasskeyException("Invalid passkey provided. Please try again.");
+	        }
+	        log.debug("Provided passkey verified against stored derived encryption key for userId={}",
+	                currentUser.getUserId());
 
-			EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
-			messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), derivedUserKeyFromInputPasskey);
-			log.debug("Message content encryption key successfully decrypted for verification for messageId={}",
-					messageId);
+	        DecryptionKey dk = keyRepo.findByMessage_MessageId(messageId)
+	                .orElseThrow(() -> new NotFoundException("Decryption key not found for this message."));
 
-		} catch (Exception e) {
-			log.warn("Passkey verification failed for msgId={} for user {}. Error: {}", messageId,
-					currentUser.getUserName(), e.getMessage(), e);
-			throw new EncryptionDecryptionException("Passkey verification failed.", e); // Changed to
-																						// EncryptionDecryptionException
-		}
+	        EncryptionService aesService = factory.getEncryptionService(Algorithm.AES);
 
-		passkeyCacheService.markValidated(currentUser.getUserName());
-		log.info("Passkey verified and message content key retrieved for msg={}", messageId);
-		return messageContentEncryptionKey;
+	      
+	        if (msg.getReceiver().getUserId().equals(currentUser.getUserId())) {
+	            // Current user is the receiver, use the key stored in 'encryptedKey'
+	            messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKey(), derivedUserKeyFromInputPasskey);
+	            log.debug("Message content key decrypted using receiver's derived user key for verification (messageId={})", messageId);
+	        } else {
+	            // Current user must be the sender, use the key stored in 'encryptedKeyForSender'
+	            messageContentEncryptionKey = aesService.decrypt(dk.getEncryptedKeyForSender(), derivedUserKeyFromInputPasskey);
+	            log.debug("Message content key decrypted using sender's derived user key for verification (messageId={})", messageId);
+	        }
+	      
+
+	        log.debug("Message content encryption key successfully decrypted for verification for messageId={}",
+	                messageId);
+
+	    } catch (Exception e) {
+	        log.warn("Passkey verification failed for msgId={} for user {}. Error: {}", messageId,
+	                currentUser.getUserName(), e.getMessage(), e);
+	        throw new EncryptionDecryptionException("Passkey verification failed.", e);
+	    }
+
+	    passkeyCacheService.markValidated(currentUser.getUserName());
+	    log.info("Passkey verified and message content key retrieved for msg={}", messageId);
+	    return messageContentEncryptionKey;
 	}
 
 	@Override
