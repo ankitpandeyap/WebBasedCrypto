@@ -260,6 +260,8 @@ Add monitoring (e.g., Prometheus/Grafana)
 
 Handle persistent login state after page refresh (e.g., "remember me")
 
+File Upload Feature (Encryption during Upload/Decryption during Download)
+
 🧑‍💻 Author
 -
 
