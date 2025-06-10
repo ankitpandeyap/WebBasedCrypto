@@ -30,7 +30,14 @@ export default function Dashboard() {
             const fetchedMessages = response.data.map(msg => ({
                 ...msg,
                 isRead: msg.read,
-                isStarred: msg.starred
+                isStarred: msg.starred,
+                isFile: msg.file,
+                // Add a displayContent for non-file messages to show snippet
+                displayContent: msg.file
+                    ? '' // If it's a file, no content preview needed here
+                    : (msg.encryptedContent // Check if encryptedContent exists
+                        ? (msg.encryptedContent.substring(0, 70) + (msg.encryptedContent.length > 70 ? '...' : ''))
+                        : 'No content preview available') // Fallback if encryptedContent is null/undefined
             }));
 
             setMessages((prevMessages) => {
@@ -41,7 +48,14 @@ export default function Dashboard() {
                     const normalizedSseMsg = {
                         ...sseMsg,
                         isRead: sseMsg.hasOwnProperty('isRead') ? sseMsg.isRead : sseMsg.read,
-                        isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred
+                        isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred,
+                        isFile: sseMsg.file,
+                        // Ensure displayContent is updated for SSE messages too with safety check
+                        displayContent: sseMsg.file
+                            ? ''
+                            : (sseMsg.encryptedContent
+                                ? (sseMsg.encryptedContent.substring(0, 70) + (sseMsg.encryptedContent.length > 70 ? '...' : ''))
+                                : 'No content preview available')
                     };
                     combinedMap.set(sseMsg.messageId, { ...existingMsg, ...normalizedSseMsg });
                 });
@@ -51,7 +65,7 @@ export default function Dashboard() {
             });
 
         } catch (error) {
-            console.error("Dashboard: Failed to fetch messages:", error); // Keeping console.error for critical errors
+            console.error("Dashboard: Failed to fetch messages:", error);
             toast.error(
                 "Failed to load messages: " +
                 (error.response?.data?.message || error.message)
@@ -59,7 +73,7 @@ export default function Dashboard() {
         } finally {
             setLoadingMessages(false);
         }
-    }, [receivedMessages]);
+    }, [receivedMessages]); // Keep receivedMessages in dependency array for real-time updates
 
     useEffect(() => {
         if (loadingAuth) return;
@@ -83,13 +97,29 @@ export default function Dashboard() {
                 const normalizedSseMsg = {
                     ...sseMsg,
                     isRead: sseMsg.hasOwnProperty('isRead') ? sseMsg.isRead : sseMsg.read,
-                    isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred
+                    isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred,
+                    isFile: sseMsg.file,
+                    // Ensure displayContent is updated for SSE messages too with safety check
+                    displayContent: sseMsg.file
+                        ? ''
+                        : (sseMsg.encryptedContent
+                            ? (sseMsg.encryptedContent.substring(0, 70) + (sseMsg.encryptedContent.length > 70 ? '...' : ''))
+                            : 'No content preview available')
                 };
                 updatedMessagesMap.set(sseMsg.messageId, { ...existingMsg, ...normalizedSseMsg });
             });
             return Array.from(updatedMessagesMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         });
-    }, [receivedMessages]);
+    }, [receivedMessages]); // Keep receivedMessages in dependency array for real-time updates
+
+
+    // The rest of your Dashboard.jsx code remains the same as previously provided,
+    // including formatTimestamp, openDecryptModal, closeDecryptModal,
+    // handleMarkAsReadAfterDecryption, handleMarkAsStarred, openDeleteConfirmModal,
+    // closeDeleteConfirmModal, confirmDeleteMessage, handleDownloadFile, and the JSX return.
+    // Just ensure you copy-paste the whole file.
+
+    // ... (rest of the Dashboard.jsx code)
 
     const formatTimestamp = (timestamp) => {
         const date = new Date(timestamp);
@@ -139,7 +169,7 @@ export default function Dashboard() {
 
             toast.success("Message marked as read.");
         } catch (error) {
-            console.error("Dashboard: Failed to mark message as read after decryption:", error); // Keeping console.error for critical errors
+            console.error("Dashboard: Failed to mark message as read after decryption:", error);
             toast.error("Failed to mark message as read automatically.");
         }
     };
@@ -162,7 +192,7 @@ export default function Dashboard() {
                 `Message ${newIsStarredStatus ? "marked as important" : "unmarked as important"}.`
             );
         } catch (error) {
-            console.error("Dashboard: Failed to update starred status:", error); // Keeping console.error for critical errors
+            console.error("Dashboard: Failed to update starred status:", error);
             toast.error(
                 "Failed to update starred status: " +
                 (error.response?.data?.message || error.message)
@@ -176,18 +206,16 @@ export default function Dashboard() {
         }
     };
 
- const openDeleteConfirmModal = (message) => {
+    const openDeleteConfirmModal = (message) => {
         setMessageToDelete(message);
         setShowDeleteConfirm(true);
     };
 
-    // New: Function to close the delete confirmation overlay
     const closeDeleteConfirmModal = () => {
         setShowDeleteConfirm(false);
         setMessageToDelete(null);
     };
 
-    // New: Function to handle the actual deletion after confirmation
     const confirmDeleteMessage = async () => {
         if (!messageToDelete) return;
 
@@ -197,14 +225,79 @@ export default function Dashboard() {
                 prevMessages.filter((msg) => msg.messageId !== messageToDelete.messageId)
             );
             toast.success("Message deleted successfully!");
-            closeDeleteConfirmModal(); // Close the modal after successful deletion
+            closeDeleteConfirmModal();
         } catch (error) {
             console.error("Dashboard: Failed to delete message:", error);
             toast.error(
                 "Failed to delete message: " +
                 (error.response?.data?.message || error.message)
             );
-            closeDeleteConfirmModal(); // Close the modal even on error
+            closeDeleteConfirmModal();
+        }
+    };
+
+    const handleDownloadFile = async (messageId, passkey) => {
+        try {
+            const response = await axiosInstance.get(`/messages/${messageId}/download`, {
+                params: { passkey },
+                responseType: 'blob', // Essential for downloading binary data
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            // Extract filename from Content-Disposition header, fallback to message data
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `downloaded_file_${messageId}`; // Default fallback
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)]+"?/); // Adjusted regex
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            } else if (selectedMessage && selectedMessage.originalFileName) {
+                filename = selectedMessage.originalFileName;
+            }
+
+            // Create a URL for the blob and trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click(); // Programmatically click the link to trigger download
+            link.parentNode.removeChild(link); // Clean up the link element
+            window.URL.revokeObjectURL(url); // Clean up the object URL
+
+            toast.success(`File "${filename}" downloaded successfully!`);
+
+            // Optionally mark message as read after successful download
+            if (selectedMessage && !selectedMessage.isRead) {
+                handleMarkAsReadAfterDecryption(messageId);
+            }
+        } catch (error) {
+            console.error("Dashboard: Failed to download file:", error);
+            // Check for specific error response structures
+            let errMsg = "An unknown error occurred during download.";
+            if (error.response && error.response.data) {
+                // If it's a blob, we need to read it as text to get the error message
+                if (error.response.data instanceof Blob) {
+                    const errorText = await error.response.data.text();
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errMsg = errorJson.message || errorJson.error || errMsg;
+                    } catch (e) {
+                        errMsg = errorText; // Fallback to raw text if not JSON
+                    }
+                } else if (error.response.data.message) {
+                    errMsg = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errMsg = error.response.data.error;
+                }
+            } else if (error.message) {
+                errMsg = error.message;
+            }
+            // Re-throw the error so DecryptModal can display its own toast/error state
+            throw new Error(errMsg);
         }
     };
 
@@ -267,9 +360,17 @@ export default function Dashboard() {
                                         <span className="message-sender">
                                             {message.senderUsername}
                                         </span>
-                                        <p className="message-subject">
-                                            {message.encryptedContent.substring(0, 70)}...
-                                        </p>
+                                        {/* UPDATED: Conditional display for file vs. text message content */}
+                                        {message.isFile ? (
+                                            <p className="message-subject">
+                                                <i className="fas fa-file file-icon"></i> **{message.originalFileName}** ({message.contentType})
+                                            </p>
+                                        ) : (
+                                            <p className="message-subject">
+                                                {/* Display snippet of encryptedContent */}
+                                                <strong>{message.displayContent}</strong>
+                                            </p>
+                                        )}
                                         <span className="message-encryption-type">
                                             Algorithm: {message.encryptionType}
                                         </span>
@@ -279,17 +380,33 @@ export default function Dashboard() {
                                         <span className="message-timestamp">
                                             {formatTimestamp(message.timestamp)}
                                         </span>
-                                        <button
-                                            className="decrypt-btn"
-                                            onClick={() => openDecryptModal(message)}
-                                        >
-                                            Decrypt
-                                        </button>
+                                        {/* Conditional button for Download vs. Decrypt */}
+                                        {message.isFile ? (
+                                            <button
+                                                className="action-btn download-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openDecryptModal(message);
+                                                }}
+                                            >
+                                                Download File
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="decrypt-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openDecryptModal(message);
+                                                }}
+                                            >
+                                                Decrypt
+                                            </button>
+                                        )}
                                         <button
                                             className="delete-btn"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                openDeleteConfirmModal(message); // Open confirmation overlay
+                                                openDeleteConfirmModal(message);
                                             }}
                                         >
                                             Delete
@@ -308,10 +425,11 @@ export default function Dashboard() {
                     onClose={closeDecryptModal}
                     isSentView={false}
                     onDecryptSuccess={handleMarkAsReadAfterDecryption}
+                    onFileDownload={handleDownloadFile}
                 />
             )}
 
-            {/* New: Delete Confirmation Overlay */}
+            {/* Existing Delete Confirmation Overlay */}
             {showDeleteConfirm && (
                 <div className="delete-confirm-overlay">
                     <div className="delete-confirm-modal">

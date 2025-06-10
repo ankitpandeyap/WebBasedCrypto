@@ -3,8 +3,8 @@ import { toast } from "react-toastify";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import DecryptModal from "../components/DecryptModal"; // Include DecryptModal for viewing sent message content
-import "../css/Dashboard.css"; // Reuse Dashboard CSS for consistent message list styling
+import DecryptModal from "../components/DecryptModal";
+import "../css/Dashboard.css";
 
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -18,14 +18,23 @@ export default function SentMessages() {
     const [isDecryptModalOpen, setIsDecryptModalOpen] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
-    // Function to fetch sent messages from the backend API
     const fetchSentMessages = useCallback(async () => {
         try {
             setLoadingMessages(true);
-            const response = await axiosInstance.get("/messages/sent"); // Calls the new backend endpoint
-            setMessages(response.data);
+            const response = await axiosInstance.get("/messages/sent");
+            const normalizedMessages = response.data.map(msg => ({
+                ...msg,
+                isFile: msg.file,
+                // Safely create displayContent for text messages
+                displayContent: msg.file
+                    ? ''
+                    : (msg.encryptedContent
+                        ? (msg.encryptedContent.substring(0, 70) + (msg.encryptedContent.length > 70 ? '...' : ''))
+                        : 'No content preview available') // Fallback if encryptedContent is null/undefined
+            }));
+            setMessages(normalizedMessages);
         } catch (error) {
-            console.error("Failed to fetch sent messages:", error); // Keeping console.error for critical errors
+            console.error("Failed to fetch sent messages:", error);
             toast.error(
                 "Failed to load sent messages: " +
                 (error.response?.data?.message || error.message)
@@ -33,11 +42,10 @@ export default function SentMessages() {
         } finally {
             setLoadingMessages(false);
         }
-    }, []);
+    }, []); // Removed messages from dependency array to prevent infinite loop
 
-    // Effect to handle initial loading and authentication check
     useEffect(() => {
-        if (loadingAuth) return; // Wait until authentication status is known
+        if (loadingAuth) return;
 
         if (!accessToken) {
             toast.error("Session expired. Please log in.");
@@ -45,17 +53,14 @@ export default function SentMessages() {
             return;
         }
 
-        // Fetch sent messages when the component mounts and auth is ready
         fetchSentMessages();
     }, [fetchSentMessages, accessToken, loadingAuth, navigate]);
 
-    // Helper function to format message timestamps (reused from Dashboard.jsx)
-    const formatTimestamp = (timestamp) => {
+    const formatTimestamp = useCallback((timestamp) => {
         const date = new Date(timestamp);
         const now = new Date();
         if (isNaN(date)) return "Invalid Date";
 
-        // Format based on whether the message is from the current year
         if (date.getFullYear() === now.getFullYear()) {
             return date.toLocaleString("en-IN", {
                 month: "short",
@@ -72,9 +77,8 @@ export default function SentMessages() {
                 minute: "2-digit",
             });
         }
-    };
+    }, []);
 
-    // Functions to manage the decrypt modal for viewing sent messages
     const openDecryptModal = (message) => {
         setSelectedMessage(message);
         setIsDecryptModalOpen(true);
@@ -85,13 +89,67 @@ export default function SentMessages() {
         setSelectedMessage(null);
     };
 
+    const handleDownloadFile = async (messageId, passkey) => {
+        try {
+            const response = await axiosInstance.get(`/messages/${messageId}/download`, {
+                params: { passkey },
+                responseType: 'blob',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `downloaded_file_${messageId}`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            } else if (selectedMessage && selectedMessage.originalFileName) {
+                filename = selectedMessage.originalFileName;
+            }
+
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            toast.success(`File "${filename}" downloaded successfully!`);
+        } catch (error) {
+            console.error("SentMessages: Failed to download file:", error);
+            let errMsg = "An unknown error occurred during download.";
+            if (error.response && error.response.data) {
+                if (error.response.data instanceof Blob) {
+                    const errorText = await error.response.data.text();
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errMsg = errorJson.message || errorJson.error || errMsg;
+                    } catch (e) {
+                        errMsg = errorText;
+                    }
+                } else if (error.response.data.message) {
+                    errMsg = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errMsg = error.response.data.error;
+                }
+            } else if (error.message) {
+                errMsg = error.message;
+            }
+            throw new Error(errMsg);
+        }
+    };
+
     return (
         <>
             <Header />
             <div className="main-dashboard-layout">
                 <Sidebar />
                 <div className="inbox-content-area">
-                  
                     {loadingMessages && messages.length === 0 ? (
                         <div className="loading-wrapper">
                             <p className="loading-text">Loading sent messages...</p>
@@ -101,7 +159,7 @@ export default function SentMessages() {
                     ) : (
                         <div className="message-list">
                             {messages.map((message) => (
-                                <div key={message.messageId} className="message-item message-read"> {/* NEW: Always apply message-read class */}
+                                <div key={message.messageId} className="message-item message-read">
                                     <div className="message-actions-left">
                                         {/* Checkbox and Star are intentionally removed for sent messages */}
                                     </div>
@@ -110,9 +168,16 @@ export default function SentMessages() {
                                         <span className="message-sender">
                                             To: {message.receiverUsername}
                                         </span>
-                                        <p className="message-subject">
-                                            {message.encryptedContent.substring(0, 70)}...
-                                        </p>
+                                        {/* Using displayContent for summary, and originalFileName for file types */}
+                                        {message.isFile ? (
+                                            <p className="message-subject">
+                                                <i className="fas fa-file"></i> <strong>{message.originalFileName}</strong> ({message.contentType})
+                                            </p>
+                                        ) : (
+                                            <p className="message-subject">
+                                                <strong>{message.displayContent}</strong>
+                                            </p>
+                                        )}
                                         <span className="message-encryption-type">
                                             Algorithm: {message.encryptionType}
                                         </span>
@@ -122,12 +187,21 @@ export default function SentMessages() {
                                         <span className="message-timestamp">
                                             {formatTimestamp(message.timestamp)}
                                         </span>
-                                        <button
-                                            className="decrypt-btn"
-                                            onClick={() => openDecryptModal(message)}
-                                        >
-                                            View
-                                        </button>
+                                        {message.isFile ? (
+                                            <button
+                                                className="action-btn download-btn"
+                                                onClick={() => openDecryptModal(message)}
+                                            >
+                                                Download File
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="decrypt-btn"
+                                                onClick={() => openDecryptModal(message)}
+                                            >
+                                                View
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -140,7 +214,8 @@ export default function SentMessages() {
                 <DecryptModal
                     message={selectedMessage}
                     onClose={closeDecryptModal}
-                    isSentView={true} // Keep this true for sent view
+                    isSentView={true}
+                    onFileDownload={handleDownloadFile}
                 />
             )}
         </>

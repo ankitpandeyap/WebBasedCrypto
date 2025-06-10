@@ -200,3 +200,116 @@ html, body {
 .suggestion-item:hover {
     background-color: #f0f0f0;
 }
+
+.message-type-selection {
+    margin-bottom: 15px; /* Space below the mode selection */
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px; /* Space between radio buttons */
+    margin-top: 5px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #555;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 8px;
+    /* Optional: custom radio button styling */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    outline: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.radio-group input[type="radio"]:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.radio-group input[type="radio"]:checked::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    border-radius: 50%;
+    margin: 3px; /* Adjust to center the dot */
+}
+
+.selected-file-info {
+    display: flex;
+    align-items: center;
+    background-color: #e9f7ef; /* Light green background */
+    border: 1px solid #c8e6c9; /* Green border */
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #333;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.selected-file-info strong {
+    color: #28a745; /* Green text for file name */
+}
+
+.clear-file-btn {
+    background: none;
+    border: 1px solid #dc3545; /* Red border */
+    color: #dc3545; /* Red text */
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.clear-file-btn:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+.no-file-selected {
+    color: #777;
+    font-style: italic;
+    padding: 10px 0;
+    text-align: center;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+}
+
+/* Ensure the choose file button is styled correctly */
+.choose-file-btn {
+    background-color: #6c757d; /* Grey button */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background-color 0.3s ease;
+    align-self: flex-start; /* Align to the start of the flex container */
+    margin-top: 10px; /* Space from other elements */
+    width: fit-content; /* Adjust width to content */
+}
+
+.choose-file-btn:hover:not(:disabled) {
+    background-color: #5a6268;
+}
+
+.choose-file-btn:disabled {
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+}

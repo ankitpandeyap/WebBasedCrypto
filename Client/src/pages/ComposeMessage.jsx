@@ -7,202 +7,325 @@ import Sidebar from "../components/Sidebar";
 import "../css/ComposeMessage.css";
 
 export default function ComposeMessage() {
-  const [recipient, setRecipient] = useState("");
-  const [messageContent, setMessageContent] = useState("");
-  const [encryptionType, setEncryptionType] = useState("AES");
-  const [loading, setLoading] = useState(false);
-  const [availableUsers, setAvailableUsers] = useState([]);
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+    const [recipient, setRecipient] = useState("");
+    const [messageContent, setMessageContent] = useState("");
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [encryptionType, setEncryptionType] = useState("AES");
+    const [loading, setLoading] = useState(false);
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [composeMode, setComposeMode] = useState("message"); // 'message' or 'file'
 
-  const navigate = useNavigate();
-  const autocompleteRef = useRef(null); // Ref for the autocomplete container
+    const navigate = useNavigate();
+    const autocompleteRef = useRef(null);
+    const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await axiosInstance.get("/users/all");
-        setAvailableUsers(response.data);
-      } catch (error) {
-        console.error("Failed to fetch users:", error);
-        // We will address the 401 error separately.
-      }
-    };
-    fetchUsers();
-  }, []);
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await axiosInstance.get("/users/all");
+                setAvailableUsers(response.data);
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+            }
+        };
+        fetchUsers();
+    }, []);
 
-  useEffect(() => {
-    if (recipient.length > 0) {
-      const filtered = availableUsers.filter(
-        (user) =>
-          user.username.toLowerCase().includes(recipient.toLowerCase()) ||
-          user.email.toLowerCase().includes(recipient.toLowerCase())
-      );
-      setFilteredSuggestions(filtered);
-      // Only show suggestions if there are actual matches AND the input is focused
-      // We will control visibility more strictly with onBlur/onFocus
-    } else {
-      setFilteredSuggestions([]);
-    }
-  }, [recipient, availableUsers]);
+    useEffect(() => {
+        if (recipient.length > 0) {
+            const filtered = availableUsers.filter(
+                (user) =>
+                    user.username.toLowerCase().includes(recipient.toLowerCase()) ||
+                    user.email.toLowerCase().includes(recipient.toLowerCase())
+            );
+            setFilteredSuggestions(filtered);
+        } else {
+            setFilteredSuggestions([]);
+        }
+    }, [recipient, availableUsers]);
 
-  // Handle click outside suggestions to close them
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // If the click is outside the autocomplete container, hide suggestions
-      if (
-        autocompleteRef.current &&
-        !autocompleteRef.current.contains(event.target)
-      ) {
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                autocompleteRef.current &&
+                !autocompleteRef.current.contains(event.target)
+            ) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    const handleSuggestionClick = (username, event) => {
+        event.stopPropagation();
+        setRecipient(username);
         setShowSuggestions(false);
-      }
     };
 
-    // Attach event listener to the document
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      // Clean up the event listener on unmount
-      document.removeEventListener("mousedown", handleClickOutside);
+    const handleInputFocus = () => {
+        if (recipient.length > 0 && filteredSuggestions.length > 0) {
+            setShowSuggestions(true);
+        }
     };
-  }, []); // Empty dependency array because autocompleteRef.current is stable
 
-  const handleSuggestionClick = (username, event) => {
-    // Stop the event from bubbling up to the document's mousedown listener
-    event.stopPropagation();
-    setRecipient(username);
-    setShowSuggestions(false); // Hide suggestions after selection
-  };
+    const handleInputBlur = () => {
+        setTimeout(() => {
+            setShowSuggestions(false);
+        }, 100);
+    };
 
-  // When input is focused, show suggestions if there's text
-  const handleInputFocus = () => {
-    if (recipient.length > 0 && filteredSuggestions.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            setMessageContent(""); // Clear message content when a file is selected
+            toast.info(`File selected: ${file.name}`);
+        }
+    };
 
-  // When input loses focus, hide suggestions (with a slight delay to allow click on suggestion)
-  const handleInputBlur = () => {
-    // Use a small timeout to allow the handleSuggestionClick to fire before blur hides it
-    setTimeout(() => {
-      setShowSuggestions(false);
-    }, 100);
-  };
+    const handleChooseFileClick = () => {
+        fileInputRef.current?.click();
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    const handleComposeModeChange = (mode) => {
+        setComposeMode(mode);
+        if (mode === "message") {
+            setSelectedFile(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ''; // Clear file input field
+            }
+        } else {
+            setMessageContent("");
+        }
+    };
 
-    try {
-      const response = await axiosInstance.post("/messages/send", {
-        toUsername: recipient,
-        rawMessage: messageContent,
-        algorithm: encryptionType,
-      });
-      toast.success(response.data || "Message sent successfully!");
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error(
-        "Failed to send message: " + (error.response?.data || error.message)
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
 
-  return (
-    <>
-      <Header />
-      <div className="main-dashboard-layout">
-        <Sidebar />
-        <div className="compose-container">
-          <div className="compose-box">
-            <h1 className="compose-title">Compose New Message</h1>
-            <form onSubmit={handleSubmit} className="compose-form">
-              <div
-                className="form-group recipient-autocomplete"
-                ref={autocompleteRef}
-              >
-                <label htmlFor="recipient" className="form-label">
-                  To:
-                </label>
-                <input
-                  id="recipient"
-                  type="text"
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  onFocus={handleInputFocus} // Use new focus handler
-                  onBlur={handleInputBlur} // Use new blur handler
-                  placeholder="Recipient username or Email NOTE:PRESENT IN SYSTEM"
-                  required
-                  className="form-input"
-                />
-                {showSuggestions && filteredSuggestions.length > 0 && (
-                  <ul className="suggestions-list">
-                    {filteredSuggestions.map((user) => (
-                      <li
-                        key={user.id}
-                        // Pass the event object to stop propagation
-                        onClick={(e) => handleSuggestionClick(user.username, e)}
-                        className="suggestion-item"
-                      >
-                        {user.username} ({user.email})
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+        let dataToSend; // This will hold either JSON or FormData
+        let endpoint = "";
+        let contentType = "";
 
-              <div className="form-group">
-                <label htmlFor="messageContent" className="form-label">
-                  Message:
-                </label>
-                <textarea
-                  id="messageContent"
-                  value={messageContent}
-                  onChange={(e) => setMessageContent(e.target.value)}
-                  placeholder="Your message content"
-                  rows="8"
-                  required
-                  className="form-textarea"
-                ></textarea>
-              </div>
+        if (composeMode === "file") {
+            if (!selectedFile) {
+                toast.error("Please select a file to send.");
+                setLoading(false);
+                return;
+            }
+            dataToSend = new FormData();
+            dataToSend.append("toUsername", recipient);
+            dataToSend.append("algorithm", encryptionType);
+            dataToSend.append("file", selectedFile);
+            endpoint = "/messages/send-file";
+            contentType = "multipart/form-data"; // axios will set this automatically, but good to be explicit
+        } else {
+            // composeMode === 'message'
+            if (!messageContent.trim()) {
+                toast.error("Please provide a message.");
+                setLoading(false);
+                return;
+            }
+            dataToSend = { // This is a plain JavaScript object, will be sent as JSON
+                toUsername: recipient,
+                algorithm: encryptionType,
+                rawMessage: messageContent,
+            };
+            endpoint = "/messages/send";
+            contentType = "application/json"; // axios will set this based on dataToSend type, but good to be explicit
+        }
 
-              <div className="form-group">
-                <label htmlFor="encryptionType" className="form-label">
-                  Encryption Algorithm:
-                </label>
-                <select
-                  id="encryptionType"
-                  value={encryptionType}
-                  onChange={(e) => setEncryptionType(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="AES">AES</option>
+        try {
+            const config = {
+                headers: {
+                    "Content-Type": contentType, // Explicitly set content type based on mode
+                },
+            };
 
-                  <option value="MONO_ALPHABETIC_CIPHER">Monoalphabetic</option>
-                  <option value="CUSTOM">Custom</option>
-                </select>
-                {(encryptionType === "MONO_ALPHABETIC_CIPHER" ||
-                  encryptionType === "CUSTOM") && (
-                  <p className="algorithm-warning">
-                    Warning: Monoalphabetic, and Custom ciphers are not secure
-                    for sensitive data.
-                  </p>
-                )}
-              </div>
+            const response = await axiosInstance.post(endpoint, dataToSend, config);
+            toast.success(response.data || "Message sent successfully!");
+            navigate("/dashboard");
+        } catch (error) {
+            console.error("Failed to send message:", error);
+            // It's good to check for error.response?.data and error.response?.data?.error
+            // because your backend returns Map.of("error", "...")
+            const errorMessage = error.response?.data?.error || error.response?.data || error.message;
+            toast.error("Failed to send message: " + errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="compose-submit-btn"
-              >
-                {loading ? "Sending..." : "Send Message"}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+    return (
+        <>
+            <Header />
+            <div className="main-dashboard-layout">
+                <Sidebar />
+                <div className="compose-container">
+                    <div className="compose-box">
+                        <h1 className="compose-title">Compose New Message</h1>
+                        <form onSubmit={handleSubmit} className="compose-form">
+                            <div
+                                className="form-group recipient-autocomplete"
+                                ref={autocompleteRef}
+                            >
+                                <label htmlFor="recipient" className="form-label">
+                                    To:
+                                </label>
+                                <input
+                                    id="recipient"
+                                    type="text"
+                                    value={recipient}
+                                    onChange={(e) => setRecipient(e.target.value)}
+                                    onFocus={handleInputFocus}
+                                    onBlur={handleInputBlur}
+                                    placeholder="Recipient username or Email NOTE:PRESENT IN SYSTEM"
+                                    required
+                                    className="form-input"
+                                />
+                                {showSuggestions && filteredSuggestions.length > 0 && (
+                                    <ul className="suggestions-list">
+                                        {filteredSuggestions.map((user) => (
+                                            <li
+                                                key={user.id}
+                                                onClick={(e) => handleSuggestionClick(user.username, e)}
+                                                className="suggestion-item"
+                                            >
+                                                {user.username} ({user.email})
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            <div className="form-group message-type-selection">
+                                <label className="form-label">Select Content Type:</label>
+                                <div className="radio-group">
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            value="message"
+                                            checked={composeMode === "message"}
+                                            onChange={() => handleComposeModeChange("message")}
+                                        />
+                                        Type Message
+                                    </label>
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            value="file"
+                                            checked={composeMode === "file"}
+                                            onChange={() => handleComposeModeChange("file")}
+                                        />
+                                        Send File
+                                    </label>
+                                </div>
+                            </div>
+
+                            {composeMode === "message" && (
+                                <div className="form-group">
+                                    <label htmlFor="messageContent" className="form-label">
+                                        Message Content:
+                                    </label>
+                                    <textarea
+                                        id="messageContent"
+                                        value={messageContent}
+                                        onChange={(e) => setMessageContent(e.target.value)}
+                                        placeholder="Type your message here..."
+                                        rows="8"
+                                        className="form-textarea"
+                                    ></textarea>
+                                </div>
+                            )}
+
+                            {composeMode === "file" && (
+                                <div className="form-group">
+                                    <label htmlFor="fileInput" className="form-label">
+                                        File to Send:
+                                    </label>
+                                    {selectedFile ? (
+                                        <p className="selected-file-info">
+                                            Selected File: <strong>{selectedFile.name}</strong> (
+                                            {(selectedFile.size / 1024).toFixed(2)} KB)
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedFile(null)}
+                                                className="clear-file-btn"
+                                            >
+                                                Clear File
+                                            </button>
+                                        </p>
+                                    ) : (
+                                        <p className="no-file-selected">No file chosen.</p>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        style={{ display: "none" }}
+                                        id="fileInput"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleChooseFileClick}
+                                        className="choose-file-btn"
+                                    >
+                                        {selectedFile ? "Change File" : "Choose File"}
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="encryptionType" className="form-label">
+                                    Encryption Algorithm:
+                                </label>
+                                <select
+                                    id="encryptionType"
+                                    value={encryptionType}
+                                    onChange={(e) => setEncryptionType(e.target.value)}
+                                    className="form-select"
+                                >
+                                    <option value="AES">AES</option>
+                                    <option value="MONO_ALPHABETIC_CIPHER">Monoalphabetic</option>
+                                    <option value="CUSTOM">Custom</option>
+                                </select>
+                                {(encryptionType === "MONO_ALPHABETIC_CIPHER" ||
+                                    encryptionType === "CUSTOM") && (
+                                        <p className="algorithm-warning">
+                                            Warning: Monoalphabetic, and Custom ciphers are not secure
+                                            for sensitive data.
+                                        </p>
+                                    )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={
+                                    loading ||
+                                    recipient.trim() === "" ||
+                                    (composeMode === "message" && messageContent.trim() === "") ||
+                                    (composeMode === "file" && !selectedFile)
+                                }
+                                className="compose-submit-btn"
+                            >
+                                {loading
+                                    ? composeMode === "file"
+                                        ? "Uploading..."
+                                        : "Sending..."
+                                    : composeMode === "file"
+                                        ? "Send File"
+                                        : "Send Message"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
 }
