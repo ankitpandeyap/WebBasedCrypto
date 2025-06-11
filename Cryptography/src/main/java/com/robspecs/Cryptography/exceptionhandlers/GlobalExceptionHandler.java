@@ -1,6 +1,6 @@
-
 package com.robspecs.Cryptography.exceptionhandlers;
 
+import java.io.IOException; // NEW IMPORT
 import java.util.HashMap;
 import java.util.Map;
 
@@ -196,6 +196,28 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
 	}
 
+    /**
+     * Handles IllegalArgumentException (HTTP 400 Bad Request).
+     * Occurs for various invalid arguments, often from service-level validation.
+     * Examples: empty message content, attempting to decrypt a file as text, etc.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("IllegalArgumentException caught: {}", ex.getMessage());
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles IOException (HTTP 500 Internal Server Error).
+     * Occurs during file reading/writing operations.
+     */
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<String> handleIOException(IOException ex) {
+        logger.error("IOException caught: {}", ex.getMessage(), ex);
+        return new ResponseEntity<>("A server error occurred while processing the file.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+
 	/**
 	 * Generic exception handler for any unhandled exceptions (HTTP 500 Internal
 	 * Server Error). This is the fallback for any exception not specifically caught
@@ -207,9 +229,9 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>("An unexpected internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
-	  @ExceptionHandler(InboxRetrievalException.class)
-	    public ResponseEntity<String> handleInboxRetrievalException(InboxRetrievalException ex) {
-	        logger.error("InboxRetrievalException caught: {}", ex.getMessage(), ex);
-	        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-	    }
+	@ExceptionHandler(InboxRetrievalException.class)
+	public ResponseEntity<String> handleInboxRetrievalException(InboxRetrievalException ex) {
+		logger.error("InboxRetrievalException caught: {}", ex.getMessage(), ex);
+		return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
 }

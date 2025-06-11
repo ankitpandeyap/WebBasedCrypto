@@ -2,6 +2,8 @@ package com.robspecs.Cryptography.serviceImpl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Base64; // Added for Base64 encoding/decoding of bytes
+import java.nio.charset.StandardCharsets; // Added for String to byte[] conversion
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,44 +75,74 @@ public class MonoAlphabeticCipherService implements EncryptionService {
         return map;
     }
 
+    // --- EXISTING STRING METHODS (MODIFIED TO DELEGATE) ---
     @Override
-    public String encrypt(String rawMessage, String passkey) {
-        logger.debug("Encrypting message using MonoAlphabetic Cipher with key (length: {}).", passkey.length());
-        Map<Character, Character> encryptMap = createEncryptMap(passkey);
-        StringBuilder encrypted = new StringBuilder();
-        for (char ch : rawMessage.toCharArray()) {
-            // Use Character.valueOf() to handle potential auto-boxing issues with map keys
-            if (encryptMap.containsKey(Character.valueOf(ch))) {
-                encrypted.append(encryptMap.get(Character.valueOf(ch)));
-            } else {
-                // If a character is not in our defined PLAIN_ALPHABET, it passes through unchanged.
-                // This is a design choice for simple monoalphabetic ciphers.
-                encrypted.append(ch);
-                logger.warn("Character '{}' not found in PLAIN_ALPHABET. Passing through unchanged.", ch);
-            }
-        }
-        String encryptedMessage = encrypted.toString();
-        logger.debug("Message encrypted successfully");
-        return encryptedMessage;
+    public String encrypt(String rawMessage, String passkey) throws Exception { // Added throws Exception
+        logger.debug("Encrypting text message using MonoAlphabetic Cipher.");
+        // Convert string to bytes
+        byte[] rawBytes = rawMessage.getBytes(StandardCharsets.UTF_8);
+        // Encrypt bytes using the new byte[] method
+        byte[] encryptedBytes = encrypt(rawBytes, passkey); // Calls the new byte[] method
+        // Convert encrypted bytes back to string for storage (Base64 is common for binary to string)
+        return Base64.getEncoder().encodeToString(encryptedBytes); // Base64 encode for string storage
     }
 
     @Override
-    public String decrypt(String encryptedMessage, String passkey) {
-        logger.debug("Decrypting message using MonoAlphabetic Cipher with key (length: {}).", passkey.length());
-        Map<Character, Character> decryptMap = createDecryptMap(passkey);
-        StringBuilder decrypted = new StringBuilder();
-        for (char ch : encryptedMessage.toCharArray()) {
-            // Use Character.valueOf() to handle potential auto-boxing issues with map keys
-            if (decryptMap.containsKey(Character.valueOf(ch))) {
-                decrypted.append(decryptMap.get(Character.valueOf(ch)));
+    public String decrypt(String encryptedMessage, String passkey) throws Exception { // Added throws Exception
+        logger.debug("Decrypting text message using MonoAlphabetic Cipher.");
+        // Decode Base64 string to bytes
+        byte[] encryptedBytes = Base64.getDecoder().decode(encryptedMessage);
+        // Decrypt bytes using the new byte[] method
+        byte[] decryptedBytes = decrypt(encryptedBytes, passkey); // Calls the new byte[] method
+        // Convert decrypted bytes back to string
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+    // --- END MODIFIED EXISTING STRING METHODS ---
+
+
+    // --- NEW METHODS FOR BINARY DATA (FILES) ---
+    @Override
+    public byte[] encrypt(byte[] rawBytes, String keyString) throws Exception {
+        logger.debug("Encrypting {} bytes of binary data using MonoAlphabetic Cipher.", rawBytes.length);
+        Map<Character, Character> encryptMap = createEncryptMap(keyString); // Use the provided keyString as the alphabet map
+        byte[] encrypted = new byte[rawBytes.length];
+
+        for (int i = 0; i < rawBytes.length; i++) {
+            // Treat each byte as a character (carefully handling byte range for char conversion)
+            char ch = (char) (rawBytes[i] & 0xFF); // Convert byte to unsigned char value
+            
+            // Apply the substitution. If character not in alphabet, it passes through.
+            if (encryptMap.containsKey(Character.valueOf(ch))) {
+                encrypted[i] = (byte) encryptMap.get(Character.valueOf(ch)).charValue();
             } else {
-                // If a character is not in our defined PLAIN_ALPHABET, it passes through unchanged.
-                decrypted.append(ch);
-                logger.warn("Character '{}' not found in PLAIN_ALPHABET. Passing through unchanged.", ch);
+                encrypted[i] = rawBytes[i]; // Pass through unchanged
+                logger.warn("Byte value '{}' (char '{}') not found in PLAIN_ALPHABET. Passing through unchanged.", rawBytes[i], ch);
             }
         }
-        String decryptedMessage = decrypted.toString();
-        logger.debug("Message decrypted successfully");
-        return decryptedMessage;
+        logger.debug("Binary data encryption complete. Encrypted size: {} bytes.", encrypted.length);
+        return encrypted;
     }
+
+    @Override
+    public byte[] decrypt(byte[] encryptedBytes, String keyString) throws Exception {
+        logger.debug("Decrypting {} bytes of binary data using MonoAlphabetic Cipher.", encryptedBytes.length);
+        Map<Character, Character> decryptMap = createDecryptMap(keyString); // Use the provided keyString as the alphabet map
+        byte[] decrypted = new byte[encryptedBytes.length];
+
+        for (int i = 0; i < encryptedBytes.length; i++) {
+            // Treat each byte as a character
+            char ch = (char) (encryptedBytes[i] & 0xFF); // Convert byte to unsigned char value
+
+            // Apply the inverse substitution. If character not in alphabet, it passes through.
+            if (decryptMap.containsKey(Character.valueOf(ch))) {
+                decrypted[i] = (byte) decryptMap.get(Character.valueOf(ch)).charValue();
+            } else {
+                decrypted[i] = encryptedBytes[i]; // Pass through unchanged
+                logger.warn("Byte value '{}' (char '{}') not found in PLAIN_ALPHABET. Passing through unchanged.", encryptedBytes[i], ch);
+            }
+        }
+        logger.debug("Binary data decryption complete. Decrypted size: {} bytes.", decrypted.length);
+        return decrypted;
+    }
+    // --- END NEW METHODS ---
 }

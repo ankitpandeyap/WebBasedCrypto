@@ -65,18 +65,12 @@ export const SseProvider = ({ children }) => {
         es.addEventListener("new-message", (event) => {
             try {
                 const newMessage = JSON.parse(event.data);
-                // --- ONLY CHANGE HERE: Map 'file' to 'isFile' for SSE messages ---
-                const normalizedNewMessage = {
-                    ...newMessage,
-                    isFile: newMessage.file // Ensure this is mapped correctly
-                };
-
                 setReceivedMessages((prevMessages) => {
                     // Prevent duplicate messages based on messageId
-                    if (prevMessages.some((msg) => msg.messageId === normalizedNewMessage.messageId)) {
+                    if (prevMessages.some((msg) => msg.messageId === newMessage.messageId)) {
                         return prevMessages;
                     }
-                    const updatedMessages = [normalizedNewMessage, ...prevMessages]; // Use normalizedNewMessage
+                    const updatedMessages = [newMessage, ...prevMessages];
                     // Sort messages by timestamp in descending order
                     return updatedMessages.sort(
                         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()

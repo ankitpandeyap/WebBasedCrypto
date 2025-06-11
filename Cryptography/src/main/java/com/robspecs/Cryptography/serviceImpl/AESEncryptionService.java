@@ -19,80 +19,93 @@ import com.robspecs.Cryptography.service.EncryptionService;
 @Service("AES")
 public class AESEncryptionService implements EncryptionService {
 
-    // Use a proper cipher transformation: Algorithm/Mode/Padding
-    private static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding"; // Recommended: CBC mode
+    private static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
     private static final String ALGORITHM = "AES";
     private static final Logger logger = LoggerFactory.getLogger(AESEncryptionService.class);
-    private static final int IV_LENGTH_BYTES = 16; // IV for AES/CBC is always 16 bytes (block size)
+    private static final int IV_LENGTH_BYTES = 16;
 
-    // This method now correctly derives a 128-bit (16-byte) AES key from a string.
-    // This derived key can then be used for encryption/decryption.
-    // This is distinct from the PBKDF2 key used for the user's primary encryption key.
-    // This deriveKey is suitable for deriving keys from arbitrary strings (like your 'passkey'
-    // or the 'messageContentEncryptionKey' which is a random string you need to treat as a key).
+    // Initialize SecureRandom once for efficiency and proper seeding
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    // Your existing deriveKey method - NO CHANGES HERE
     private SecretKeySpec deriveKey(String keyString) throws Exception {
-        // Log sensitive parts carefully, only first few chars for debugging
         logger.info("Deriving key for string (first 5 chars): {}", keyString.substring(0, Math.min(keyString.length(), 5)));
         byte[] keyBytes;
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        keyBytes = sha.digest(keyString.getBytes("UTF-8")); // SHA-256 always produces 32 bytes
-        logger.debug("SHA-256 hash length (before copy): {} bytes", keyBytes.length); // Should be 32
-        keyBytes = Arrays.copyOf(keyBytes, 16); // Truncate to 16 bytes for AES-128 (128-bit key)
-        logger.debug("Final derived key length (after copy): {} bytes", keyBytes.length); // Should be 16
+        keyBytes = sha.digest(keyString.getBytes("UTF-8"));
+        logger.debug("SHA-256 hash length (before copy): {} bytes", keyBytes.length);
+        keyBytes = Arrays.copyOf(keyBytes, 16);
+        logger.debug("Final derived key length (after copy): {} bytes", keyBytes.length);
         return new SecretKeySpec(keyBytes, ALGORITHM);
     }
 
+    // --- NEW METHOD 1: Encrypt byte array data ---
     @Override
-    public String encrypt(String rawMessage, String keyString) throws Exception {
-        logger.debug("Encrypting message using AES with CBC mode");
-        // Get the SecretKeySpec from the provided keyString (which might be the message's symmetric key
-        // or the user's derived key to encrypt the message's symmetric key).
-        SecretKeySpec key = deriveKey(keyString); // **CALLING DERIVEKEY HERE**
+    public byte[] encrypt(byte[] rawBytes, String keyString) throws Exception {
+        logger.debug("Encrypting {} bytes of binary data with AES.", rawBytes.length);
+        SecretKeySpec secretKey = deriveKey(keyString); // Use your existing deriveKey
 
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] iv = new byte[IV_LENGTH_BYTES]; // Generate a random IV for each encryption
-        secureRandom.nextBytes(iv);
+        byte[] iv = new byte[IV_LENGTH_BYTES];
+        secureRandom.nextBytes(iv); // Generate a random IV for each encryption
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
 
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        byte[] encryptedBytes = cipher.doFinal(rawMessage.getBytes(StandardCharsets.UTF_8)); // Ensure UTF-8 for message
+        byte[] encryptedBytes = cipher.doFinal(rawBytes);
 
-        // Prepend IV to the encrypted message before Base64 encoding
+        // Prepend IV to the ciphertext for easy storage and retrieval
         // The format will be: [IV (16 bytes)] + [Ciphertext]
         byte[] combined = new byte[iv.length + encryptedBytes.length];
         System.arraycopy(iv, 0, combined, 0, iv.length);
         System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
 
-        String encryptedMessage = Base64.getEncoder().encodeToString(combined);
-        logger.debug("Message encrypted successfully");
-        return encryptedMessage;
+        logger.debug("Binary data encryption complete. Encrypted size (with IV): {} bytes.", combined.length);
+        return combined;
+    }
+
+    // --- NEW METHOD 2: Decrypt byte array data ---
+    @Override
+    public byte[] decrypt(byte[] encryptedBytesWithIv, String keyString) throws Exception {
+        logger.debug("Decrypting {} bytes of binary data with AES.", encryptedBytesWithIv.length);
+        SecretKeySpec secretKey = deriveKey(keyString); // Use your existing deriveKey
+
+        // Extract IV from the beginning of the encrypted bytes
+        if (encryptedBytesWithIv.length < IV_LENGTH_BYTES) {
+            logger.error("Encrypted data too short to contain IV. Expected at least {} bytes, got {} bytes.", IV_LENGTH_BYTES, encryptedBytesWithIv.length);
+            throw new IllegalArgumentException("Encrypted data is too short to contain the IV.");
+        }
+        byte[] iv = Arrays.copyOfRange(encryptedBytesWithIv, 0, IV_LENGTH_BYTES);
+        IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+        // Extract actual ciphertext (rest of the bytes after IV)
+        byte[] cipherText = Arrays.copyOfRange(encryptedBytesWithIv, IV_LENGTH_BYTES, encryptedBytesWithIv.length);
+        
+        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+
+        byte[] decryptedBytes = cipher.doFinal(cipherText);
+        logger.debug("Binary data decryption complete. Decrypted size: {} bytes.", decryptedBytes.length);
+        return decryptedBytes;
+    }
+
+    // --- MODIFIED EXISTING STRING METHODS (NOW DELEGATE TO BYTE[] METHODS) ---
+    @Override
+    public String encrypt(String rawMessage, String keyString) throws Exception {
+        logger.debug("Encrypting text message with AES (delegating to byte[] method).");
+        byte[] rawBytes = rawMessage.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedBytesWithIv = encrypt(rawBytes, keyString); // Delegate to the new byte[] encrypt method
+        String encodedEncryptedMessage = Base64.getEncoder().encodeToString(encryptedBytesWithIv);
+        logger.debug("Text message encryption complete. Encoded length: {} bytes.", encodedEncryptedMessage.length());
+        return encodedEncryptedMessage;
     }
 
     @Override
     public String decrypt(String encryptedMessage, String keyString) throws Exception {
-        logger.debug("Decrypting message using AES with CBC mode");
-        // Get the SecretKeySpec from the provided keyString
-        SecretKeySpec key = deriveKey(keyString); // **CALLING DERIVEKEY HERE**
-
-        byte[] decodedBytes = Base64.getDecoder().decode(encryptedMessage);
-
-        // Extract IV from the decoded bytes (first 16 bytes are the IV)
-        if (decodedBytes.length < IV_LENGTH_BYTES) {
-            logger.error("Decrypted data is too short to contain IV. Length: {}", decodedBytes.length);
-            throw new IllegalArgumentException("Encrypted data is malformed: missing IV.");
-        }
-        byte[] iv = Arrays.copyOfRange(decodedBytes, 0, IV_LENGTH_BYTES);
-        IvParameterSpec ivSpec = new IvParameterSpec(iv);
-
-        // Extract actual ciphertext (rest of the bytes after IV)
-        byte[] cipherText = Arrays.copyOfRange(decodedBytes, IV_LENGTH_BYTES, decodedBytes.length);
-
-        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
-        byte[] decryptedBytes = cipher.doFinal(cipherText);
-
-        logger.debug("Message decrypted successfully");
-        return new String(decryptedBytes, StandardCharsets.UTF_8); // Ensure UTF-8 for message
+        logger.debug("Decrypting text message with AES (delegating to byte[] method).");
+        byte[] encryptedBytesWithIv = Base64.getDecoder().decode(encryptedMessage);
+        byte[] decryptedBytes = decrypt(encryptedBytesWithIv, keyString); // Delegate to the new byte[] decrypt method
+        String decryptedMessageText = new String(decryptedBytes, StandardCharsets.UTF_8);
+        logger.debug("Text message decryption complete. Decrypted length: {} bytes.", decryptedMessageText.length());
+        return decryptedMessageText;
     }
 }

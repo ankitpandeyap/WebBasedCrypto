@@ -23,7 +23,8 @@ export default function Dashboard() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
 
-    const fetchMessages = useCallback(async () => {
+    // This useCallback is for the initial fetch of all messages when component mounts
+    const fetchMessagesInitial = useCallback(async () => {
         try {
             setLoadingMessages(true);
             const response = await axiosInstance.get("/messages/inbox");
@@ -32,38 +33,16 @@ export default function Dashboard() {
                 isRead: msg.read,
                 isStarred: msg.starred,
                 isFile: msg.file,
-                // Add a displayContent for non-file messages to show snippet
                 displayContent: msg.file
-                    ? '' // If it's a file, no content preview needed here
-                    : (msg.encryptedContent // Check if encryptedContent exists
+                    ? ''
+                    : (msg.encryptedContent
                         ? (msg.encryptedContent.substring(0, 70) + (msg.encryptedContent.length > 70 ? '...' : ''))
-                        : 'No content preview available') // Fallback if encryptedContent is null/undefined
+                        : 'No content preview available')
             }));
-
-            setMessages((prevMessages) => {
-                const combinedMap = new Map();
-                fetchedMessages.forEach(msg => combinedMap.set(msg.messageId, msg));
-                receivedMessages.forEach(sseMsg => {
-                    const existingMsg = combinedMap.get(sseMsg.messageId);
-                    const normalizedSseMsg = {
-                        ...sseMsg,
-                        isRead: sseMsg.hasOwnProperty('isRead') ? sseMsg.isRead : sseMsg.read,
-                        isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred,
-                        isFile: sseMsg.file,
-                        // Ensure displayContent is updated for SSE messages too with safety check
-                        displayContent: sseMsg.file
-                            ? ''
-                            : (sseMsg.encryptedContent
-                                ? (sseMsg.encryptedContent.substring(0, 70) + (sseMsg.encryptedContent.length > 70 ? '...' : ''))
-                                : 'No content preview available')
-                    };
-                    combinedMap.set(sseMsg.messageId, { ...existingMsg, ...normalizedSseMsg });
-                });
-                return Array.from(combinedMap.values()).sort(
-                    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                );
-            });
-
+            // Set initial messages, sort them once
+            setMessages(fetchedMessages.sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            ));
         } catch (error) {
             console.error("Dashboard: Failed to fetch messages:", error);
             toast.error(
@@ -73,25 +52,27 @@ export default function Dashboard() {
         } finally {
             setLoadingMessages(false);
         }
-    }, [receivedMessages]); // Keep receivedMessages in dependency array for real-time updates
+    }, []); // Removed accessToken and navigate from here
 
+    // Effect for initial load: Call fetchMessagesInitial
     useEffect(() => {
         if (loadingAuth) return;
-
         if (!accessToken) {
             toast.error("Session expired. Please log in.");
             navigate("/login");
             return;
         }
+        fetchMessagesInitial(); // Call the initial fetch
+    }, [fetchMessagesInitial, accessToken, loadingAuth, navigate]); // Keep them here
 
-        fetchMessages();
-
-    }, [fetchMessages, accessToken, loadingAuth, navigate]);
-
+    // Effect to handle real-time updates from SSE
     useEffect(() => {
-        setMessages((prevMessages) => {
+        if (receivedMessages.length === 0) return; // No new SSE messages to process
+
+        setMessages(prevMessages => {
             const updatedMessagesMap = new Map(prevMessages.map(msg => [msg.messageId, msg]));
 
+            let shouldReSort = false; // Flag to indicate if a new message was added (requiring resort)
             receivedMessages.forEach(sseMsg => {
                 const existingMsg = updatedMessagesMap.get(sseMsg.messageId);
                 const normalizedSseMsg = {
@@ -99,29 +80,38 @@ export default function Dashboard() {
                     isRead: sseMsg.hasOwnProperty('isRead') ? sseMsg.isRead : sseMsg.read,
                     isStarred: sseMsg.hasOwnProperty('isStarred') ? sseMsg.isStarred : sseMsg.starred,
                     isFile: sseMsg.file,
-                    // Ensure displayContent is updated for SSE messages too with safety check
                     displayContent: sseMsg.file
                         ? ''
                         : (sseMsg.encryptedContent
                             ? (sseMsg.encryptedContent.substring(0, 70) + (sseMsg.encryptedContent.length > 70 ? '...' : ''))
                             : 'No content preview available')
                 };
+
+                // If it's a new message, we definitely need to resort
+                if (!existingMsg) {
+                    shouldReSort = true;
+                }
+                // Merge existing message with new SSE data, or add new message
                 updatedMessagesMap.set(sseMsg.messageId, { ...existingMsg, ...normalizedSseMsg });
             });
-            return Array.from(updatedMessagesMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            let newMessagesArray = Array.from(updatedMessagesMap.values());
+            if (shouldReSort) {
+                // Only sort if new messages were added
+                newMessagesArray.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            }
+            return newMessagesArray;
         });
-    }, [receivedMessages]); // Keep receivedMessages in dependency array for real-time updates
+        // TODO: You might want to consider clearing `receivedMessages` from SseContext
+        // after processing them, to prevent reprocessing the same messages on
+        // subsequent renders. This depends on how `SseContext` manages its internal state.
+        // For example: updateSseContext({ type: 'CLEAR_PROCESSED_MESSAGES', payload: receivedMessages.map(m => m.messageId)});
+        // or ensure `receivedMessages` in SseContext gets cleared/reset after each 'batch' processing.
+    }, [receivedMessages]); // This useEffect only reacts to changes in SSE messages
 
+    // --- The rest of your Dashboard.jsx code remains the same ---
 
-    // The rest of your Dashboard.jsx code remains the same as previously provided,
-    // including formatTimestamp, openDecryptModal, closeDecryptModal,
-    // handleMarkAsReadAfterDecryption, handleMarkAsStarred, openDeleteConfirmModal,
-    // closeDeleteConfirmModal, confirmDeleteMessage, handleDownloadFile, and the JSX return.
-    // Just ensure you copy-paste the whole file.
-
-    // ... (rest of the Dashboard.jsx code)
-
-    const formatTimestamp = (timestamp) => {
+    const formatTimestamp = useCallback((timestamp) => {
         const date = new Date(timestamp);
         const now = new Date();
         if (isNaN(date)) return "Invalid Date";
@@ -142,7 +132,7 @@ export default function Dashboard() {
                 minute: "2-digit",
             });
         }
-    };
+    }, []); // Memoize formatTimestamp as it's a utility
 
     const openDecryptModal = (message) => {
         setSelectedMessage(message);
@@ -165,6 +155,7 @@ export default function Dashboard() {
                     msg.messageId === messageId ? { ...msg, isRead: true } : msg
                 )
             );
+            // This ensures SSE context also reflects the read status
             updateSseMessageStatus(messageId, { isRead: true });
 
             toast.success("Message marked as read.");
@@ -186,6 +177,7 @@ export default function Dashboard() {
                     msg.messageId === messageId ? { ...msg, isStarred: newIsStarredStatus } : msg
                 )
             );
+            // This ensures SSE context also reflects the starred status
             updateSseMessageStatus(messageId, { isStarred: newIsStarredStatus });
 
             toast.success(
@@ -197,6 +189,7 @@ export default function Dashboard() {
                 "Failed to update starred status: " +
                 (error.response?.data?.message || error.message)
             );
+            // Revert UI state on error, if desired, though SSE might eventually correct it
             setMessages((prevMessages) =>
                 prevMessages.map((msg) =>
                     msg.messageId === messageId ? { ...msg, isStarred: currentIsStarredStatus } : msg
@@ -240,17 +233,16 @@ export default function Dashboard() {
         try {
             const response = await axiosInstance.get(`/messages/${messageId}/download`, {
                 params: { passkey },
-                responseType: 'blob', // Essential for downloading binary data
+                responseType: 'blob',
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
 
-            // Extract filename from Content-Disposition header, fallback to message data
             const contentDisposition = response.headers['content-disposition'];
-            let filename = `downloaded_file_${messageId}`; // Default fallback
+            let filename = `downloaded_file_${messageId}`;
             if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="([^"]+)]+"?/); // Adjusted regex
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"?/);
                 if (filenameMatch && filenameMatch[1]) {
                     filename = filenameMatch[1];
                 }
@@ -258,35 +250,31 @@ export default function Dashboard() {
                 filename = selectedMessage.originalFileName;
             }
 
-            // Create a URL for the blob and trigger download
             const url = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', filename);
             document.body.appendChild(link);
-            link.click(); // Programmatically click the link to trigger download
-            link.parentNode.removeChild(link); // Clean up the link element
-            window.URL.revokeObjectURL(url); // Clean up the object URL
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
 
             toast.success(`File "${filename}" downloaded successfully!`);
 
-            // Optionally mark message as read after successful download
             if (selectedMessage && !selectedMessage.isRead) {
                 handleMarkAsReadAfterDecryption(messageId);
             }
         } catch (error) {
             console.error("Dashboard: Failed to download file:", error);
-            // Check for specific error response structures
             let errMsg = "An unknown error occurred during download.";
             if (error.response && error.response.data) {
-                // If it's a blob, we need to read it as text to get the error message
                 if (error.response.data instanceof Blob) {
                     const errorText = await error.response.data.text();
                     try {
                         const errorJson = JSON.parse(errorText);
                         errMsg = errorJson.message || errorJson.error || errMsg;
                     } catch (e) {
-                        errMsg = errorText; // Fallback to raw text if not JSON
+                        errMsg = errorText;
                     }
                 } else if (error.response.data.message) {
                     errMsg = error.response.data.message;
@@ -296,7 +284,6 @@ export default function Dashboard() {
             } else if (error.message) {
                 errMsg = error.message;
             }
-            // Re-throw the error so DecryptModal can display its own toast/error state
             throw new Error(errMsg);
         }
     };
@@ -429,7 +416,6 @@ export default function Dashboard() {
                 />
             )}
 
-            {/* Existing Delete Confirmation Overlay */}
             {showDeleteConfirm && (
                 <div className="delete-confirm-overlay">
                     <div className="delete-confirm-modal">
