@@ -249,6 +249,8 @@ Dynamic UI updates for new messages, read status, and starred status using SSE
 
 Automated SSE reconnection and token refresh handling on the frontend
 
+File Upload/Download with Encryption/Decryption(ADDED TOOGLE IN FRONTEND)
+
 🧩 To Do (Optional Enhancements)
 -
 
@@ -260,7 +262,6 @@ Add monitoring (e.g., Prometheus/Grafana)
 
 Handle persistent login state after page refresh (e.g., "remember me")
 
-File Upload Feature (Encryption during Upload/Decryption during Download)
 
 🧑‍💻 Author
 -
